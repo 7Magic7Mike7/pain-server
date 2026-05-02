@@ -105,4 +105,10 @@ function getCoordinateDataAfterId(id: number): CoordinateDataPoint[] {
   return dataPoints;
 }
 
-export { initializeData, getCountryData, getCoordinateData };
+function getRandomDataPoint(): CoordinateDataPoint {
+  const keys = Object.keys(coordinateData);
+  const randomKey = keys[Math.floor(Math.random() * keys.length)];
+  return coordinateData[Number.parseInt(randomKey, 10)];
+}
+
+export { initializeData, getCountryData, getCoordinateData, getRandomDataPoint };

@@ -1,5 +1,5 @@
 import express from 'express';
-import { initializeData } from './scripts/dataloader';
+import { getRandomDataPoint, initializeData } from './scripts/dataloader';
 
 const app = express();
 app.use(express.json());
@@ -24,4 +24,9 @@ app.post('/api/data', (req, res) => {
 app.listen(3000, () => {
   console.log('Server running at http://localhost:3000/');
   initializeData();
+});
+
+// debug endpoints
+app.get('/random', (req, res) => {
+  res.json({ data: getRandomDataPoint() });
 });
