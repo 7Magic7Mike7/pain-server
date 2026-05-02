@@ -1,6 +1,19 @@
-# TypeScript Migration
+The PPP Map's backend server including the frontend that will be served to users.
 
-This project has been migrated to TypeScript.
+# Backend
+programmed using Node.js & Typescript
+
+## APIs
+
+### Prototyping
+
+#### /random
+returns a random data point
+
+# Frontend
+TODO
+
+# Node Commands
 
 ## Usage
 
@@ -13,4 +26,4 @@ This project has been migrated to TypeScript.
    npm start
    ```
 
-Source files are now in `.ts` (TypeScript) format. Compiled output is in the `dist/` folder.
+Compiled output is in the `dist/` folder.
