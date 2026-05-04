@@ -1,5 +1,6 @@
 import express from 'express';
 import { getRandomDataPoint, initializeData } from './scripts/dataloader';
+import { getRowById } from './scripts/db-loader';
 
 const app = express();
 app.use(express.json());
@@ -29,4 +30,14 @@ app.listen(3000, () => {
 // debug endpoints
 app.get('/random', (req, res) => {
   res.json({ data: getRandomDataPoint() });
+});
+
+app.get('/db/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const row = await getRowById(Number.parseInt(id, 10));
+    res.json(row);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch row with ' + error });
+  }
 });
