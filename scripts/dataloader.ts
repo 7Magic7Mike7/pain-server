@@ -26,19 +26,24 @@ function _loadData(filePath: string): string[][] {
   // Implement as needed
   const parsedData = [];
 
-  // load the data
-  const data = fs.readFileSync(filePath, 'utf8');
-  const lines = data.trim().split('\n');
-  
-  // extract the data
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trim() === '') continue;
-    const values = lines[i].split(',');
-    const row = [];
-    for (let j = 0; j < values.length; j++) {
-      row.push(values[j].trim());
+  try {
+    // load the data
+    const data = fs.readFileSync(filePath, 'utf8');
+    const lines = data.trim().split('\n');
+    
+    // extract the data
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].trim() === '') continue;
+      const values = lines[i].split(',');
+      const row = [];
+      for (let j = 0; j < values.length; j++) {
+        row.push(values[j].trim());
+      }
+      parsedData.push(row);
     }
-    parsedData.push(row);
+  }
+  catch (exception) {
+    console.log("Loading data failed: ", exception);
   }
 
   return parsedData;

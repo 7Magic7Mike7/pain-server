@@ -15,6 +15,7 @@ COPY package*.json tsconfig.json ./
 RUN npm ci
 
 COPY . .
+RUN mkdir -p data   # create an empty data folder if it does not exist
 RUN npm run build
 
 # Runtime image
