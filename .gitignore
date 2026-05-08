@@ -51,7 +51,8 @@ out/
 ._*
 
 # Custom folder icons
-Icon
+Icon
+
 
 # Volume root files
 .DocumentRevisions-V100
@@ -104,4 +105,4 @@ $RECYCLE.BIN/
 
 # Built Visual Studio Code Extensions
 *.vsix
-package-lock.json
+# package-lock.json # we exclude this to make sure that docker uses the same dependencies in our deployment
