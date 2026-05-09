@@ -1,9 +1,13 @@
 import express from 'express';
+import path from 'path';
 import { getRandomDataPoint, initializeData } from './scripts/dataloader';
 import { getRowById } from './scripts/db-loader';
 
 const app = express();
 app.use(express.json());
+
+// Serve static files from public directory (frontend)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Sample data endpoint
 app.get('/api/data', (req, res) => {
@@ -41,3 +45,9 @@ app.get('/db/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch row with ' + error });
   }
 });
+
+// SPA fallback: serve index.html for non-API routes
+//app.use((req, res, next) => {
+//  if (req.path.startsWith('/api')) return next();
+//  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+//});
