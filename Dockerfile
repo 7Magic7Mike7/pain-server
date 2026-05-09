@@ -40,7 +40,7 @@ RUN npm ci --omit=dev
 
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/data ./data
-COPY --from=frontend-builder /frontend/dist ./public
+COPY --from=frontend-builder /frontend/dist ./dist/public
 
 EXPOSE 3000
 
