@@ -1,6 +1,14 @@
 # Multi-stage Dockerfile for the pain-server service
 # Builds the TypeScript app, installs Python 3.11, and produces a smaller runtime image.
 
+FROM node:20-bookworm-slim AS frontend-builder
+
+WORKDIR /frontend
+COPY pain-frontend/package*.json ./
+RUN npm ci
+COPY pain-frontend/ .
+RUN npm run build
+
 FROM node:20-bookworm-slim AS builder
 
 # Install Python 3.11 and pip for later Python script support
@@ -11,10 +19,10 @@ RUN apt-get update \
 WORKDIR /usr/src/app
 
 # Install Node dependencies and build the TypeScript app
-COPY package*.json tsconfig.json ./
+COPY pain-server/package*.json pain-server/tsconfig.json ./
 RUN npm ci
 
-COPY . .
+COPY pain-server/ .
 RUN mkdir -p data   # create an empty data folder if it does not exist
 RUN npm run build
 
@@ -26,11 +34,12 @@ RUN apt-get update \
 
 WORKDIR /usr/src/app
 
-COPY package*.json ./
+COPY pain-server/package*.json ./
 RUN npm ci --omit=dev
 
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/data ./data
+COPY --from=frontend-builder /frontend/dist ./dist/public
 
 EXPOSE 3000
 

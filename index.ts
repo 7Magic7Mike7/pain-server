@@ -1,9 +1,13 @@
 import express from 'express';
-import { getRandomDataPoint, initializeData } from './scripts/dataloader';
-import { getRowById } from './scripts/db-loader';
+import path from 'path';
+import { getRandomDataPoint } from './scripts/dataloader';
+import { getRowById, getPainLayer } from './scripts/db-loader';
 
 const app = express();
 app.use(express.json());
+
+// Serve static files from public directory (frontend)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Sample data endpoint
 app.get('/api/data', (req, res) => {
@@ -24,16 +28,17 @@ app.post('/api/data', (req, res) => {
 
 app.listen(3000, () => {
   console.log('Server running at http://localhost:3000/');
-  initializeData();
 });
 
 // debug endpoints
 app.get('/random', (req, res) => {
+  console.log('/random called');
   res.json({ data: getRandomDataPoint() });
 });
 
 app.get('/db/:id', async (req, res) => {
   const { id } = req.params;
+  console.log(`/db/${id} called`);
   try {
     const row = await getRowById(Number.parseInt(id, 10));
     res.json(row);
@@ -41,3 +46,23 @@ app.get('/db/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch row with ' + error });
   }
 });
+
+// frontend initialization
+app.get('/init/:layer', async (req, res) => {
+  const { layer } = req.params;
+  console.log(`/init/${layer} called`);
+  try {
+    const data = await getPainLayer(layer);
+    res.json(data);
+  }
+  catch (error) {
+    console.log(`/init/${layer} error: ${error}`);
+    res.status(500).json({ error: 'Failed to fetch pain layer with ' + error });
+  }
+});
+
+// SPA fallback: serve index.html for non-API routes
+//app.use((req, res, next) => {
+//  if (req.path.startsWith('/api')) return next();
+//  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+//});
