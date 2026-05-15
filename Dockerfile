@@ -19,7 +19,6 @@ RUN apt-get update \
 WORKDIR /usr/src/app
 
 # Install Node dependencies and build the TypeScript app
-RUN ls | echo
 COPY pain-server/package*.json pain-server/tsconfig.json ./
 RUN npm ci
 
