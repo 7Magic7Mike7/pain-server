@@ -1,6 +1,6 @@
 import express from 'express';
 import path from 'path';
-import { getRandomDataPoint, initializeData } from './scripts/dataloader';
+import { getRandomDataPoint } from './scripts/dataloader';
 import { getRowById, getPainLayer } from './scripts/db-loader';
 
 const app = express();
@@ -28,7 +28,6 @@ app.post('/api/data', (req, res) => {
 
 app.listen(3000, () => {
   console.log('Server running at http://localhost:3000/');
-  initializeData();
 });
 
 // debug endpoints
