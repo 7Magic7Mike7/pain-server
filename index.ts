@@ -1,6 +1,5 @@
 import express from 'express';
 import path from 'path';
-import { getRandomDataPoint } from './scripts/dataloader';
 import { getRowById, getPainLayer } from './scripts/db-loader';
 import { LOGGER } from './scripts/config/log-config';
 import { ServerConfig } from './scripts/config/server-config';
@@ -32,31 +31,23 @@ app.use(express.json());
 // Serve static files from public directory (frontend)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Sample data endpoint
-app.get('/api/data', (req, res) => {
-  res.json({ message: 'Hello World', data: [1, 2, 3] });
-});
-
-// Get data by ID
-app.get('/api/data/:id', (req, res) => {
-  const { id } = req.params;
-  res.json({ id, message: `Data for ID: ${id}` });
-});
-
-// POST endpoint
-app.post('/api/data', (req, res) => {
-  const newData = req.body;
-  res.json({ success: true, data: newData });
-});
-
 app.listen(ServerConfig.PORT, () => {
   logger.info(`Server running at http://localhost:${ServerConfig.PORT}/`);
 });
 
-// debug endpoints
+// ###################################
+//        Debug Endpoints
+// ###################################
 app.get('/random', (req, res) => {
   apilog("GET", "/random");
-  res.json({ data: getRandomDataPoint() });
+  res.json({
+    id: 1,
+    lat: (Math.random() - 0.5) * Math.PI, // latitude
+    lng: (Math.random() - 0.5) * 2 * Math.PI, // longitude
+    value: Math.random(), // pain_value
+    datatype: ["fire", "water", "depression", "neck", "teeth"][Math.floor(Math.random() * 5)], // pain_type
+    painorigin: ["emo", "env"][Math.floor(Math.random() * 2)]
+  });
 });
 
 app.get('/db/:id', async (req, res) => {
@@ -73,7 +64,10 @@ app.get('/db/:id', async (req, res) => {
   }
 });
 
-// frontend initialization
+// ###################################
+//        Frontend Initialization Endpoints
+// ###################################
+// send all data points for a layer
 app.get('/init/:layer', async (req, res) => {
   const { layer } = req.params;
   const apipath =  `/init/${layer}`;
