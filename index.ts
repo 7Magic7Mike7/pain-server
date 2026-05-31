@@ -2,7 +2,10 @@ import express from 'express';
 import path from 'path';
 import { getRandomDataPoint } from './scripts/dataloader';
 import { getRowById, getPainLayer } from './scripts/db-loader';
+import { LOGGER } from './scripts/config/log-config';
+import { ServerConfig } from './scripts/config/server-config';
 
+const logger = LOGGER.child({ service: "API" });
 const app = express();
 app.use(express.json());
 
@@ -26,8 +29,8 @@ app.post('/api/data', (req, res) => {
   res.json({ success: true, data: newData });
 });
 
-app.listen(3000, () => {
-  console.log('Server running at http://localhost:3000/');
+app.listen(ServerConfig.PORT, () => {
+  logger.info(`Server running at http://localhost:${ServerConfig.PORT}/`);
 });
 
 // debug endpoints
