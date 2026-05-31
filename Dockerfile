@@ -41,7 +41,8 @@ COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/data ./data
 COPY --from=frontend-builder /frontend/dist ./dist/public
 COPY pain-setup/db-config.env ./
+COPY pain-server/server.env ./
 
 EXPOSE 3000
 
-CMD ["node", "--env-file=./db-config.env", "dist/index.js"]
+CMD ["node", "--env-file=./db-config.env", "--env-file=./server.env", "dist/index.js"]
