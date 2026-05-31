@@ -6,6 +6,26 @@ import { LOGGER } from './scripts/config/log-config';
 import { ServerConfig } from './scripts/config/server-config';
 
 const logger = LOGGER.child({ service: "API" });
+/**
+ * Uses logger.apiinfo() to log information about API calls.
+ * 
+ * @param verb HTTP action (e.g., GET, POST)
+ * @param apipath the called API path
+ */
+function apilog(verb: string, apipath: string): void {
+  logger.apiinfo(`received ${verb} request for ${apipath}`);
+}
+
+/**
+ * Uses logger.apierror() to log the passed error.
+ * 
+ * @param apipath the called API path
+ * @param err the error to log
+ */
+function apierror(apipath: string, err: unknown): void {
+  logger.apierror({ err }, `${apipath} failed`);
+}
+
 const app = express();
 app.use(express.json());
 
@@ -35,17 +55,20 @@ app.listen(ServerConfig.PORT, () => {
 
 // debug endpoints
 app.get('/random', (req, res) => {
-  console.log('/random called');
+  apilog("GET", "/random");
   res.json({ data: getRandomDataPoint() });
 });
 
 app.get('/db/:id', async (req, res) => {
   const { id } = req.params;
-  console.log(`/db/${id} called`);
+  const apipath = `/db/${id}`;
+  apilog("GET", apipath);
   try {
     const row = await getRowById(Number.parseInt(id, 10));
     res.json(row);
-  } catch (error) {
+  }
+  catch (error) {
+    apierror(apipath, error);
     res.status(500).json({ error: 'Failed to fetch row with ' + error });
   }
 });
@@ -53,13 +76,15 @@ app.get('/db/:id', async (req, res) => {
 // frontend initialization
 app.get('/init/:layer', async (req, res) => {
   const { layer } = req.params;
-  console.log(`/init/${layer} called`);
+  const apipath =  `/init/${layer}`;
+  apilog("GET", apipath);
   try {
     const data = await getPainLayer(layer);
+    logger.apiinfo(`Responding with ${data.length} data points for ${apipath}`);
     res.json(data);
   }
   catch (error) {
-    console.log(`/init/${layer} error: ${error}`);
+    apierror(apipath, error);
     res.status(500).json({ error: 'Failed to fetch pain layer with ' + error });
   }
 });

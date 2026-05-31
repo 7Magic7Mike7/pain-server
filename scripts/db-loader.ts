@@ -6,6 +6,7 @@ import { LOGGER } from './config/log-config';
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pain_db';
 const pool = new Pool({ connectionString });
+const logger = LOGGER.child({ service: "DBLoader" });   // logs db queries
 
 type PainData = {
     id: number;
@@ -40,7 +41,7 @@ export async function getPainLayer(layer: string): Promise<PainData[]> {
     throw new Error("Layer must not be undefined!");
   }
   return Promise.all(painOrigins.map(origin => {
-    console.log(`Fetching data for pain origin: ${origin}`);
+    logger.database(`Fetching data for pain origin: ${origin}`);
     return pool.query(`SELECT * FROM ${DbConfig.TABLE_NAME} WHERE ${DbConfig.TABLE_COLUMN_PAINORIGIN} = $1`, [origin])
       .then((result: { rows: PainData[]; }) => result.rows);
   }))
