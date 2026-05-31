@@ -5,6 +5,8 @@ export class ServerConfig {
     static readonly DEV_MODE: boolean = process.env.DEV ? true : false;
     static readonly PORT: number = Number(process.env.PORT) || 3000;
 
+    private ServerConfig() { }
+
     static toString(): string {
         return JSON.stringify({
             version: this.VERSION,
