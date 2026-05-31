@@ -8,6 +8,7 @@ const DEV = ServerConfig.DEV_MODE;
 export const LOGGER = pino({
   level: DEV ? 'debug' : process.env.LOG_LEVEL || 'error',
   customLevels: {
+    apiinfo: 24,
     apiwarn: 25,
     apierror: 29,
     clientwarn: 31,
@@ -32,3 +33,5 @@ export const LOGGER = pino({
     }
   } : undefined,
 });
+
+LOGGER.info(`ServerConfig = ${ServerConfig.toString()}`)
