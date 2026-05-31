@@ -8,5 +8,3 @@ export class DbConfig {
     static readonly TABLE_COLUMN_DATATYPE = process.env.COL_DATATYPE || 'datatype';
     static readonly TABLE_COLUMN_PAINORIGIN = process.env.COL_PAINORIGIN || 'painorigin';
 }
-
-console.log(`Using DB config: TABLE_NAME=${DbConfig.TABLE_NAME}, ID_COL=${DbConfig.TABLE_COLUMN_ID}, LAT_COL=${DbConfig.TABLE_COLUMN_LAT}, LNG_COL=${DbConfig.TABLE_COLUMN_LNG}, VALUE_COL=${DbConfig.TABLE_COLUMN_VALUE}, DATATYPE_COL=${DbConfig.TABLE_COLUMN_DATATYPE}, PAINORIGIN_COL=${DbConfig.TABLE_COLUMN_PAINORIGIN}`);
