@@ -2,6 +2,7 @@ import { Pool } from 'pg';
 
 import { parseOrigin } from './input-validator';
 import { DbConfig } from './config/db-config';
+import { LOGGER } from './config/log-config';
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pain_db';
 const pool = new Pool({ connectionString });
@@ -45,3 +46,5 @@ export async function getPainLayer(layer: string): Promise<PainData[]> {
   }))
     .then(results => results.flat());
 }
+
+LOGGER.database(`Using DB config: TABLE_NAME=${DbConfig.TABLE_NAME}, ID_COL=${DbConfig.TABLE_COLUMN_ID}, LAT_COL=${DbConfig.TABLE_COLUMN_LAT}, LNG_COL=${DbConfig.TABLE_COLUMN_LNG}, VALUE_COL=${DbConfig.TABLE_COLUMN_VALUE}, DATATYPE_COL=${DbConfig.TABLE_COLUMN_DATATYPE}, PAINORIGIN_COL=${DbConfig.TABLE_COLUMN_PAINORIGIN}`);
