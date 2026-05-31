@@ -1,7 +1,7 @@
 import { Pool } from 'pg';
 
 import { parseOrigin } from './input-validator';
-import { DbConfig } from './config';
+import { DbConfig } from './config/db-config';
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pain_db';
 const pool = new Pool({ connectionString });
