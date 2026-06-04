@@ -1,3 +1,5 @@
+import { DbConfig } from "./db-config";
+
 
 // ######################################################################################
 //        Layer Information
@@ -14,7 +16,7 @@ export type LayerInfo = {
 
 function emoLayer(): LayerInfo {
   return {
-    id: "emo",
+    id: DbConfig.PO_EMO,
     label: "Emotional Pain",
     desc: "todo",
     color: "#0000ff",
@@ -25,7 +27,7 @@ function emoLayer(): LayerInfo {
 
 function envLayer(): LayerInfo {
   return {
-    id: "env",
+    id: DbConfig.PO_ENV,
     label: "Environmental Pain",
     desc: "todo",
     color: "#00ff00",
@@ -36,7 +38,7 @@ function envLayer(): LayerInfo {
 
 function physLayer(): LayerInfo {
   return {
-    id: "phys",
+    id: DbConfig.PO_PHYS,
     label: "Physical Pain",
     desc: "todo",
     color: "#ff0000",
@@ -47,7 +49,7 @@ function physLayer(): LayerInfo {
 
 function socioecoLayer(): LayerInfo {
   return {
-    id: "socioeco",
+    id: DbConfig.PO_SOCIOECO,
     label: "Socio-economical Pain",
     desc: "todo",
     color: "#ffff00",

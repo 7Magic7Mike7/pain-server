@@ -1,9 +1,6 @@
+import { DbConfig } from "./config/db-config";
+
 // pain origins according to the database
-const PO_ENV_NAT = "EnvNat";
-const PO_ENV_ANTRO = "EnvAntro";
-const PO_EMO = "Emo";
-const PO_PHYS = "Phys";
-const PO_SOCIOECO = "Socioeco";
 
 /**
  * Parses origin and returns an array of corresponding origin-values present in the database.
@@ -22,40 +19,40 @@ export function parsePainOrigin(painOrigin: string): string[] | null {
   let norm_origin = painOrigin.trim().replace(" ", "").toLowerCase();
   switch (norm_origin) {
     // cases where origin is exactly one of the pain origins (case-insensitive)
-    case PO_ENV_NAT.toLowerCase():
-      return [PO_ENV_NAT];
-    case PO_ENV_ANTRO.toLowerCase():
-      return [PO_ENV_ANTRO];
-    case PO_EMO.toLowerCase():
-      return [PO_EMO];
-    case PO_PHYS.toLowerCase():
-      return [PO_PHYS];
-    case PO_SOCIOECO.toLowerCase():
-      return [PO_SOCIOECO];
+    case DbConfig.PO_ENV_NAT.toLowerCase():
+      return [DbConfig.PO_ENV_NAT];
+    case DbConfig.PO_ENV_ANTRO.toLowerCase():
+      return [DbConfig.PO_ENV_ANTRO];
+    case DbConfig.PO_EMO.toLowerCase():
+      return [DbConfig.PO_EMO];
+    case DbConfig.PO_PHYS.toLowerCase():
+      return [DbConfig.PO_PHYS];
+    case DbConfig.PO_SOCIOECO.toLowerCase():
+      return [DbConfig.PO_SOCIOECO];
 
     // cases where origin is the full name
     case "environmentalnatural":
-      return [PO_ENV_NAT];
+      return [DbConfig.PO_ENV_NAT];
     case "environmentalanthropogenic":
-      return [PO_ENV_ANTRO];
+      return [DbConfig.PO_ENV_ANTRO];
     case "emotional":
-      return [PO_EMO];
+      return [DbConfig.PO_EMO];
     case "physical":
-      return [PO_PHYS];
+      return [DbConfig.PO_PHYS];
     case "socioeconomic":
-      return [PO_SOCIOECO];
+      return [DbConfig.PO_SOCIOECO];
 
     // cases that combine multiple origins
-    case "env":
+    case DbConfig.PO_ENV:
     case "environmental":
     case "planetary":
-      return [PO_ENV_NAT, PO_ENV_ANTRO];
+      return [DbConfig.PO_ENV_NAT, DbConfig.PO_ENV_ANTRO];
     case "human":
     case "individual":
     case "personal":
-      return [PO_EMO, PO_PHYS, PO_SOCIOECO];
+      return [DbConfig.PO_EMO, DbConfig.PO_PHYS, DbConfig.PO_SOCIOECO];
     case "all":
-      return [PO_ENV_NAT, PO_ENV_ANTRO, PO_EMO, PO_PHYS, PO_SOCIOECO];
+      return [DbConfig.PO_ENV_NAT, DbConfig.PO_ENV_ANTRO, DbConfig.PO_EMO, DbConfig.PO_PHYS, DbConfig.PO_SOCIOECO];
 
     // unknown origin
     default:
