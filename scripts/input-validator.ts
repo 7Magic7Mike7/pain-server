@@ -10,16 +10,16 @@ const PO_SOCIOECO = "Socioeco";
  * Supports:
  * - the straightforward case-insensitive mapping of input to known pain origins
  * 
- * @param origin string representing a pain origin
+ * @param painOrigin string representing a pain origin
  * @returns database valid origin(s) if the input is valid, empty array if the input does not match any origins, null if the input is invalid
  */
-export function parseOrigin(origin: string): string[] | null {
+export function parsePainOrigin(painOrigin: string): string[] | null {
     // TODO: only support strict origins later!
-    if (origin === null || origin === undefined) {
+    if (painOrigin === null || painOrigin === undefined) {
         return null;
     }
     // normalize the input (i.e., trim whitespace and convert to lowercase)
-    let norm_origin = origin.trim().replace(" ", "").toLowerCase();
+    let norm_origin = painOrigin.trim().replace(" ", "").toLowerCase();
     switch (norm_origin) {
         // cases where origin is exactly one of the pain origins (case-insensitive)
         case PO_ENV_NAT.toLowerCase():
