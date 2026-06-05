@@ -8,12 +8,12 @@ export class DbConfig {
   static readonly TABLE_COLUMN_DATATYPE = process.env.COL_DATATYPE || 'datatype';
   static readonly TABLE_COLUMN_PAINORIGIN = process.env.COL_PAINORIGIN || 'painorigin';
   
-  static readonly PO_EMO = "emo";
-  static readonly PO_ENV = "env";
-  static readonly PO_ENV_NAT = "envnat";
-  static readonly PO_ENV_ANTRO = "envantro";
-  static readonly PO_PHYS = "phys";
-  static readonly PO_SOCIOECO = "socioeco";
+  static readonly PO_EMO = "Emo";
+  static readonly PO_ENV = "Env";
+  static readonly PO_ENV_NAT = "EnvNat";
+  static readonly PO_ENV_ANTRO = "EnvAntro";
+  static readonly PO_PHYS = "Phys";
+  static readonly PO_SOCIOECO = "Socioeco";
 
   private DbConfig() { }
 }
