@@ -1,8 +1,9 @@
 import { Pool } from 'pg';
 
-import { parseOrigin } from './input-validator';
+import { parsePainOrigin } from './input-validator';
 import { DbConfig } from './config/db-config';
 import { LOGGER } from './config/log-config';
+import { LayerInfo } from './config/layer-config';
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pain_db';
 const pool = new Pool({ connectionString });
@@ -32,8 +33,8 @@ export function syncGetRowById(id: number): Promise<PainData> {
     });
 }
 
-export async function getPainLayer(layer: string): Promise<PainData[]> {
-  const painOrigins = parseOrigin(layer);
+export async function getPainLayer(layer: string, layerInfo: Record<string, LayerInfo>): Promise<PainData[]> {
+  const painOrigins = parsePainOrigin(layer);
   if (painOrigins === null) {
     throw new Error("Layer must not be null!");
   }
