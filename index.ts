@@ -107,9 +107,7 @@ app.get('/db/:id', async (req, res) => {
 // send information about layer structure
 app.get('/init', async (req, res) => {
   apilog("GET", "/init");
-  res.json({
-    layers: Object.values(layerInfo),
-  });
+  res.json(Object.values(layerInfo));
 });
 
 // send all data points for a layer
