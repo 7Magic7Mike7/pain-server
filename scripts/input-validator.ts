@@ -43,7 +43,7 @@ export function parsePainOrigin(painOrigin: string): string[] | null {
       return [DbConfig.PO_SOCIOECO];
 
     // cases that combine multiple origins
-    case DbConfig.PO_ENV:
+    case DbConfig.PO_ENV.toLowerCase():
     case "environmental":
     case "planetary":
       return [DbConfig.PO_ENV_NAT, DbConfig.PO_ENV_ANTRO];
