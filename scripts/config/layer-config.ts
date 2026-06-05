@@ -58,6 +58,19 @@ function socioecoLayer(): LayerInfo {
   }
 }
 
+function experimentalLayers(): LayerInfo[] {
+  return [
+    {
+      id: "ex1",
+      label: "Ex1",
+      desc: "just an experimental layer",
+      color: "#5adb2f",
+      geospatial: true,
+      text: false
+    },
+  ];
+}
+
 /**
  * 
  * @returns {@link LayerInfo} for every available layer
@@ -68,7 +81,7 @@ export function getAllLayerInfo(): LayerInfo[] {
     envLayer(),
     physLayer(),
     socioecoLayer(),
-  ];
+  ].concat(experimentalLayers());
 }
 
 
