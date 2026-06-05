@@ -174,5 +174,4 @@ describe("layer information", () => {
       }
     });
   });
-})
-
+});
