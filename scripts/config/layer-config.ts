@@ -81,14 +81,21 @@ const MAX_DESCRIPTION_LENGTH = 200;
 
 export class LayerValidationError extends Error {
   private _layer: LayerInfo;
-  constructor(layer: LayerInfo, msg: string) {
+  private _code: number;
+
+  constructor(layer: LayerInfo, code: number, msg: string) {
     super(msg);
     this._layer = layer;
+    this._code = code;
     Object.setPrototypeOf(this, LayerValidationError.prototype);  // todo: do I need this?
   }
 
   layer(): LayerInfo {
     return this._layer;
+  }
+
+  code(): number {
+    return this._code;
   }
 }
 
@@ -99,27 +106,27 @@ export function validateLayers(layers: LayerInfo[]) {
     
     // 1) ids must be unique
     if (usedIds.has(id)) {
-      throw new LayerValidationError(layer, `id=${id} already exists for another layer!`);
+      throw new LayerValidationError(layer, 10, `id=${id} already exists for another layer!`);
     }
     usedIds.add(id);
 
     // 2.1) labels must be single-line
     if (label.includes("\n")) {
-      throw new LayerValidationError(layer, `label must not contain a new line!`);
+      throw new LayerValidationError(layer, 21, `label must not contain a new line!`);
     }
     // 2.2) labels must be between 1 and MAX_LABEL_LENGTH characters
     if (label.length <= 0 || MAX_LABEL_LENGTH < label.length) {
-      throw new LayerValidationError(layer, `invalid label length: 1 <= ${label.length} <= ${MAX_LABEL_LENGTH} must be true!`);
+      throw new LayerValidationError(layer, 22, `invalid label length: 1 <= ${label.length} <= ${MAX_LABEL_LENGTH} must be true!`);
     }
 
     // 3) descriptions must be between 1 and MAX_DESCRIPTION_LENGTH characters
     if (desc.length <= 0 || MAX_DESCRIPTION_LENGTH < desc.length) {
-      throw new LayerValidationError(layer, `invalid description length: 1 <= ${desc.length} <= ${MAX_DESCRIPTION_LENGTH} must be true!`);
+      throw new LayerValidationError(layer, 30, `invalid description length: 1 <= ${desc.length} <= ${MAX_DESCRIPTION_LENGTH} must be true!`);
     }
 
     // 4) colors must be valid 6-digit hex codes
-    if (color.length != 7 || Boolean(color.toLowerCase().match(/^0x[0-9a-f]+$/i))) {
-      throw new LayerValidationError(layer, `color=${color} is not a supported hex format (e.g., "#FFFFFF")!`)
+    if (color.length != 7 || color.match(/^#[\da-f]+$/i) === null) {
+      throw new LayerValidationError(layer, 40, `color=${color} is not a supported hex format (e.g., "#FFFFFF")!`)
     }
   }
 }
