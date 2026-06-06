@@ -28,7 +28,7 @@ export function syncGetRowById(id: number): Promise<PainData> {
   return pool.query(`SELECT * FROM ${DbConfig.TABLE_NAME} WHERE ${DbConfig.TABLE_COLUMN_ID} = $1`, [id])
     .then((result: { rows: PainData[]; }) => result.rows[0])
     .catch((err: any) => {
-      console.error('Error executing query', err);
+      logger.error('Error executing query', err);
       throw err;
     });
 }

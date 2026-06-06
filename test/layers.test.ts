@@ -159,7 +159,6 @@ describe("layer information", () => {
       ];
       const color = "#fffffg";
       const res = color.toLowerCase().match(/^0x[0-9a-f]+$/i);
-      console.log(`res = ${Boolean(res)}`);
 
       try {
         validateLayers(layerInfo);
