@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { DbConfig } from "../scripts/config/db-config";
-import { parsePainOrigin } from "../scripts/input-validator";
+import { DbConfig } from "../src/config/db-config";
+import { parsePainOrigin } from "../src/validation/input-validator";
 
 describe("pain origin", () => {
   describe("valid", () => {

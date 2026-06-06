@@ -1,10 +1,10 @@
 import express from 'express';
 import path from 'path';
-import { getRowById, getPainLayer } from './scripts/db-loader';
-import { LOGGER } from './scripts/config/log-config';
-import { ServerConfig } from './scripts/config/server-config';
-import { getAllLayerInfo, LayerInfo, validateLayers } from './scripts/config/layer-config';
-import { parsePainOrigin } from './scripts/input-validator';
+import { getAllLayerInfo, LayerInfo, validateLayers } from './config/layer-config';
+import { LOGGER } from './config/log-config';
+import { ServerConfig } from './config/server-config';
+import { getRowById, getPainLayer } from './loader/db-loader';
+import { parsePainOrigin } from './validation/input-validator';
 
 
 // ######################################################################################

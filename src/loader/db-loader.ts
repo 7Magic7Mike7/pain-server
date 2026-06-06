@@ -1,9 +1,9 @@
 import { Pool } from 'pg';
 
-import { parsePainOrigin } from './input-validator';
-import { DbConfig } from './config/db-config';
-import { LOGGER } from './config/log-config';
-import { LayerInfo } from './config/layer-config';
+import { DbConfig } from '../config/db-config';
+import { LayerInfo } from '../config/layer-config';
+import { LOGGER } from '../config/log-config';
+import { parsePainOrigin } from '../validation/input-validator';
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pain_db';
 const pool = new Pool({ connectionString });

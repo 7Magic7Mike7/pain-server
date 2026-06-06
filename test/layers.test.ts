@@ -1,7 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getAllLayerInfo, LayerInfo } from '../scripts/config/layer-config';
-import { validateLayers } from '../scripts/config/layer-config';
-import { LayerValidationError } from '../scripts/config/layer-config';
+import { LayerInfo, LayerValidationError, getAllLayerInfo, validateLayers} from '../src/config/layer-config';
 
 interface LayerInfoOptions {
   id?: string;

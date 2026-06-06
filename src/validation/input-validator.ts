@@ -1,4 +1,4 @@
-import { DbConfig } from "./config/db-config";
+import { DbConfig } from "../config/db-config";
 
 // pain origins according to the database
 
