@@ -63,9 +63,25 @@ function socioecoLayer(): LayerInfo {
 function experimentalLayers(): LayerInfo[] {
   const layers = [
     {
-      id: "Aggr",
+      id: "Aggr_18x36 area-centric",
       label: "Aggregation 1",
-      desc: "just an experimental layer",
+      desc: "aggregation with coordinate based on area center",
+      color: "#5adb2f",
+      geospatial: true,
+      text: false
+    },
+    {
+      id: "Aggr_18x36 data-mid-centric",
+      label: "Aggregation 2",
+      desc: "aggregation with coordinate based on data points' middle",
+      color: "#5adb2f",
+      geospatial: true,
+      text: false
+    },
+    {
+      id: "Aggr_18x36 data-max-centric",
+      label: "Aggregation 3",
+      desc: "aggregation with coordinate based on the coordinate of the data point with the highest value",
       color: "#5adb2f",
       geospatial: true,
       text: false
