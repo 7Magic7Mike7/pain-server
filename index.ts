@@ -1,8 +1,8 @@
 import express from 'express';
 import path from 'path';
-import { app } from "./app";
-import { ServerConfig } from './config/server-config';
-import { LOGGER } from './config/log-config';
+import { app } from "./src/app";
+import { ServerConfig } from './src/config/server-config';
+import { LOGGER } from './src/config/log-config';
 
 app.use(express.json());
 
