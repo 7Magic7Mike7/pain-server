@@ -44,7 +44,7 @@ function initLayers(): Record<string, LayerInfo> {
   logger.info("Loading layer information...");
   const layerInfo = getAllLayerInfo();
 
-  logger.info("Validating layer information...");
+  logger.info(`Validating information of ${layerInfo.length} layers...`);
   validateLayers(layerInfo);
 
   const recLayers: Record<string, LayerInfo> = {};
@@ -53,6 +53,7 @@ function initLayers(): Record<string, LayerInfo> {
     const ppo = parsePainOrigin(li.id);
     if (ServerConfig.DEV_MODE || ppo != null && ppo.length > 0) {
       recLayers[li.id] = li;
+      logger.info(`- added layer with id = ${li.id}`);
     }
     else {
       logger.warn(`Failed to parse pain origin for layer=${li.id}`);
