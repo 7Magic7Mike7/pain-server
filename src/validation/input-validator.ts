@@ -1,6 +1,9 @@
 import { DbConfig } from "../config/db-config";
+import { EXPERIMENTAL_LAYER_PREFIX } from "../config/layer-config";
+import { LOGGER } from "../config/log-config";
+import { ServerConfig } from "../config/server-config";
 
-// pain origins according to the database
+const logger = LOGGER.child({ service: "Validator" });
 
 /**
  * Parses origin and returns an array of corresponding origin-values present in the database.
@@ -14,6 +17,10 @@ export function parsePainOrigin(painOrigin: string): string[] | null {
   // TODO: only support strict origins later!
   if (painOrigin === null || painOrigin === undefined) {
     return null;
+  }
+  if (ServerConfig.DEV_MODE && painOrigin.startsWith(EXPERIMENTAL_LAYER_PREFIX)) {
+    logger.info(`Parsing experimental layer = ${painOrigin}`);
+    return [painOrigin.substring(EXPERIMENTAL_LAYER_PREFIX.length)];
   }
   // normalize the input (i.e., trim whitespace and convert to lowercase)
   let norm_origin = painOrigin.trim().replace(" ", "").toLowerCase();

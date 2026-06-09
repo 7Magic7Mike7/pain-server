@@ -1,9 +1,11 @@
 import { DbConfig } from "./db-config";
+import { ServerConfig } from "./server-config";
 
 
 // ######################################################################################
 //        Layer Information
 // ######################################################################################
+export const EXPERIMENTAL_LAYER_PREFIX = "Ex_";
 
 export type LayerInfo = {
   id: string,             // the layer's unique identifier (e.g., for database queries)
@@ -59,16 +61,18 @@ function socioecoLayer(): LayerInfo {
 }
 
 function experimentalLayers(): LayerInfo[] {
-  return [
+  const layers = [
     {
-      id: "ex1",
-      label: "Ex1",
+      id: "Aggr",
+      label: "Aggregation 1",
       desc: "just an experimental layer",
       color: "#5adb2f",
       geospatial: true,
       text: false
     },
   ];
+  layers.forEach((val) => val.id = `${EXPERIMENTAL_LAYER_PREFIX}${val.id}`);
+  return layers;
 }
 
 /**
@@ -76,12 +80,16 @@ function experimentalLayers(): LayerInfo[] {
  * @returns {@link LayerInfo} for every available layer
  */
 export function getAllLayerInfo(): LayerInfo[] {
-  return [
+  const layers = [
     emoLayer(),
     envLayer(),
     physLayer(),
     socioecoLayer(),
-  ].concat(experimentalLayers());
+  ];
+  if (ServerConfig.DEV_MODE) {
+    layers.concat(experimentalLayers())
+  }
+  return layers;
 }
 
 
