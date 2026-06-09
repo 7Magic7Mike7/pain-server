@@ -87,7 +87,7 @@ export function getAllLayerInfo(): LayerInfo[] {
     socioecoLayer(),
   ];
   if (ServerConfig.DEV_MODE) {
-    layers.concat(experimentalLayers())
+    experimentalLayers().forEach(l => layers.push(l));
   }
   return layers;
 }
