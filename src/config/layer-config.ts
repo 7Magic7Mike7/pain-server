@@ -62,9 +62,10 @@ function socioecoLayer(): LayerInfo {
 
 function experimentalLayers(): LayerInfo[] {
   const layers = [
+    // --------------------------- 18x36
     {
       id: "Aggr_18x36 area-centric",
-      label: "Aggregation 1",
+      label: "Aggregation Area 18x36",
       desc: "aggregation with coordinate based on area center",
       color: "#5adb2f",
       geospatial: true,
@@ -72,16 +73,74 @@ function experimentalLayers(): LayerInfo[] {
     },
     {
       id: "Aggr_18x36 data-mid-centric",
-      label: "Aggregation 2",
+      label: "Aggregation Mid 18x36",
       desc: "aggregation with coordinate based on data points' middle",
       color: "#5adb2f",
       geospatial: true,
       text: false
     },
     {
+      id: "Aggr_18x36 weighted-mid-centric",
+      label: "Aggregation Weighted 18x36",
+      desc: "aggregation with coordinate based on the weighted middle of the data points",
+      color: "#5adb2f",
+      geospatial: true,
+      text: false
+    },
+    {
       id: "Aggr_18x36 data-max-centric",
-      label: "Aggregation 3",
+      label: "Aggregation Max 18x36",
       desc: "aggregation with coordinate based on the coordinate of the data point with the highest value",
+      color: "#5adb2f",
+      geospatial: true,
+      text: false
+    },
+    // --------------------------- 36x72
+    {
+      id: "Aggr_36x72 area-centric",
+      label: "Aggregation Area 36x72",
+      desc: "aggregation with coordinate based on area center",
+      color: "#5adb2f",
+      geospatial: true,
+      text: false
+    },
+    {
+      id: "Aggr_36x72 data-mid-centric",
+      label: "Aggregation Mid 36x72",
+      desc: "aggregation with coordinate based on data points' middle",
+      color: "#5adb2f",
+      geospatial: true,
+      text: false
+    },
+    {
+      id: "Aggr_36x72 weighted-mid-centric",
+      label: "Aggregation Weighted 36x72",
+      desc: "aggregation with coordinate based on the weighted middle of the data points",
+      color: "#5adb2f",
+      geospatial: true,
+      text: false
+    },
+    {
+      id: "Aggr_36x72 data-max-centric",
+      label: "Aggregation Max 36x72",
+      desc: "aggregation with coordinate based on the coordinate of the data point with the highest value",
+      color: "#5adb2f",
+      geospatial: true,
+      text: false
+    },
+    // --------------------------- Details
+    {
+      id: "Aggr_36x18_details",
+      label: "Details 36x18",
+      desc: "some detailed points form 18x36 aggregation",
+      color: "#5adb2f",
+      geospatial: true,
+      text: false
+    },
+    {
+      id: "Aggr_72x36_details",
+      label: "Details 72x36",
+      desc: "some detailed points from 36x72 aggregation",
       color: "#5adb2f",
       geospatial: true,
       text: false
@@ -113,7 +172,7 @@ export function getAllLayerInfo(): LayerInfo[] {
 //        Layer Validation
 // ######################################################################################
 
-const MAX_LABEL_LENGTH = 25;
+const MAX_LABEL_LENGTH = 30;
 const MAX_DESCRIPTION_LENGTH = 200;
 
 export class LayerValidationError extends Error {
