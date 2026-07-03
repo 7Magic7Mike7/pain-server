@@ -55,9 +55,9 @@ painorigin: string <br>
   - value: `number`
     - represents the datapoint's pain value
     - in [0, 1]
-  - datatype: `number`
-    - represents the datapoint's type of pain data
-  - painorigin: `number`
+  - datatype: `string`
+    - represents the datapoint's category of pain data
+  - painorigin: `string`
     - represents the datapoint's pain origin (i.e., layer)
 
 # Frontend
