@@ -1,15 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { DbConfig } from "../src/config/db-config";
+import { PainDbConfig } from "../src/config/db-config";
 import { parsePainOrigin } from "../src/validation/input-validator";
 
 describe("pain origin", () => {
   describe("valid", () => {
     it("DbConfig constants", () => {
       const origins: string[] = [
-        DbConfig.PO_EMO,
-        DbConfig.PO_ENV,
-        DbConfig.PO_PHYS,
-        DbConfig.PO_SOCIOECO
+        PainDbConfig.TN_EMO,
+        PainDbConfig.TN_ENV,
+        PainDbConfig.TN_PHYS,
+        PainDbConfig.TN_SOCIOECO
       ];
       for (const origin of origins) {
         const result = parsePainOrigin(origin);
@@ -19,10 +19,10 @@ describe("pain origin", () => {
     });
     it("DbConfig constants lower case", () => {
       const origins: string[] = [
-        DbConfig.PO_EMO,
-        DbConfig.PO_ENV,
-        DbConfig.PO_PHYS,
-        DbConfig.PO_SOCIOECO
+        PainDbConfig.TN_EMO,
+        PainDbConfig.TN_ENV,
+        PainDbConfig.TN_PHYS,
+        PainDbConfig.TN_SOCIOECO
       ];
       for (const origin of origins) {
         const lcOrigin = origin.toLowerCase();
@@ -37,14 +37,12 @@ describe("pain origin", () => {
     it("empty origin", () => {
       const origin = "";
       const result = parsePainOrigin(origin);
-      expect(result, `string origin must not result in null!`).not.toBeNull();
-      expect(result?.length).toBe(0);
+      expect(result, `string origin must not result in null!`).toBeNull();
     });
     it("non-existent origin", () => {
       const origin = "layer";
       const result = parsePainOrigin(origin);
-      expect(result, `string origin must not result in null!`).not.toBeNull();
-      expect(result?.length).toBe(0);
+      expect(result, `string origin must not result in null!`).toBeNull();
     });
   });
 });

@@ -4,6 +4,7 @@ import { LOGGER } from './config/log-config';
 import { ServerConfig } from './config/server-config';
 import { getRowById, getPainLayer } from './loader/db-loader';
 import { parsePainOrigin } from './validation/input-validator';
+import { PainDbConfig } from './config/db-config';
 
 
 // ######################################################################################
@@ -51,7 +52,7 @@ function initLayers(): Record<string, LayerInfo> {
   for (const li of layerInfo) {
     // only add layer if we are in DEV_MODE or can correctly parse the layer
     const ppo = parsePainOrigin(li.id);
-    if (ServerConfig.DEV_MODE || ppo != null && ppo.length > 0) {
+    if (ServerConfig.DEV_MODE || ppo != null) {
       recLayers[li.id] = li;
       logger.info(`- added layer with id = ${li.id}`);
     }
@@ -85,7 +86,7 @@ app.get('/db/:id', async (req, res) => {
   const apipath = `/db/${id}`;
   apilog("GET", apipath);
   try {
-    const row = await getRowById(Number.parseInt(id, 10));
+    const row = await getRowById(Number.parseInt(id, 10), PainDbConfig.TN_ENV);
     res.json(row);
   }
   catch (error) {
@@ -104,14 +105,14 @@ app.get('/init', async (req, res) => {
   res.json(Object.values(layerInfo));
 });
 
-// send all data points for a layer
+// send all (fully aggregated) data points for a layer
 app.get('/init/:layer', async (req, res) => {
   const { layer } = req.params;
   const apipath =  `/init/${layer}`;
   apilog("GET", apipath);
   if (layer in layerInfo) {
     try {
-      const data = await getPainLayer(layer, layerInfo);
+      const data = await getPainLayer(layer);
       logger.apiinfo(`Responding with ${data.length} data points for ${apipath}`);
       res.json(data);
     }

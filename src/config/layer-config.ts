@@ -1,4 +1,4 @@
-import { DbConfig } from "./db-config";
+import { PainDbConfig } from "./db-config";
 import { ServerConfig } from "./server-config";
 
 
@@ -18,7 +18,7 @@ export type LayerInfo = {
 
 function emoLayer(): LayerInfo {
   return {
-    id: DbConfig.PO_EMO,
+    id: PainDbConfig.TN_EMO,
     label: "Emotional Pain",
     desc: "todo",
     color: "#0000ff",
@@ -29,7 +29,7 @@ function emoLayer(): LayerInfo {
 
 function envLayer(): LayerInfo {
   return {
-    id: DbConfig.PO_ENV,
+    id: PainDbConfig.TN_ENV,
     label: "Environmental Pain",
     desc: "todo",
     color: "#00ff00",
@@ -40,7 +40,7 @@ function envLayer(): LayerInfo {
 
 function physLayer(): LayerInfo {
   return {
-    id: DbConfig.PO_PHYS,
+    id: PainDbConfig.TN_PHYS,
     label: "Physical Pain",
     desc: "todo",
     color: "#ff0000",
@@ -51,7 +51,7 @@ function physLayer(): LayerInfo {
 
 function socioecoLayer(): LayerInfo {
   return {
-    id: DbConfig.PO_SOCIOECO,
+    id: PainDbConfig.TN_SOCIOECO,
     label: "Socio-economical Pain",
     desc: "todo",
     color: "#ffff00",
@@ -62,7 +62,16 @@ function socioecoLayer(): LayerInfo {
 
 function experimentalLayers(): LayerInfo[] {
   const layers = [
+    {
+      id: "Aggr1",
+      label: "Aggregation Area 18x36",
+      desc: "aggregation with coordinate based on area center",
+      color: "#5adb2f",
+      geospatial: true,
+      text: false
+    }
     // --------------------------- 18x36
+    /*
     {
       id: "Aggr_18x36 area-centric",
       label: "Aggregation Area 18x36",
@@ -145,6 +154,7 @@ function experimentalLayers(): LayerInfo[] {
       geospatial: true,
       text: false
     },
+    */
   ];
   layers.forEach((val) => val.id = `${EXPERIMENTAL_LAYER_PREFIX}${val.id}`);
   return layers;
@@ -225,4 +235,18 @@ export function validateLayers(layers: LayerInfo[]) {
       throw new LayerValidationError(layer, 40, `color=${color} is not a supported hex format (e.g., "#FFFFFF")!`)
     }
   }
+}
+
+/**
+ * 
+ * @param painOrigin 
+ * @returns whether the painOrigin belongs to an experimental layer or not
+ * @throws Error if an experimental layer is checked outside of DEV_MODE
+ */
+export function isExperimentalLayer(painOrigin: string): boolean {
+  const result = painOrigin.startsWith(EXPERIMENTAL_LAYER_PREFIX)
+  if (result && !ServerConfig.DEV_MODE) {
+    throw new Error("Experimental Layers are only allowed during development!")
+  }
+  return result;
 }

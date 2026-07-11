@@ -78,7 +78,7 @@ describe("layer information", () => {
     });
     it("long label", () => {
       const layerInfo: LayerInfo[] = [
-        createLayerInfo({ label: "aaaaaaaaaaaaaaaaaaaaaaaaaa" }),
+        createLayerInfo({ label: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }),
       ];
 
       try {
