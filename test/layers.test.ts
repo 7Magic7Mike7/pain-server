@@ -1,7 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getAllLayerInfo, LayerInfo } from '../scripts/config/layer-config';
-import { validateLayers } from '../scripts/config/layer-config';
-import { LayerValidationError } from '../scripts/config/layer-config';
+import { LayerInfo, LayerValidationError, getAllLayerInfo, validateLayers} from '../src/config/layer-config';
 
 interface LayerInfoOptions {
   id?: string;
@@ -80,7 +78,7 @@ describe("layer information", () => {
     });
     it("long label", () => {
       const layerInfo: LayerInfo[] = [
-        createLayerInfo({ label: "aaaaaaaaaaaaaaaaaaaaaaaaaa" }),
+        createLayerInfo({ label: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }),
       ];
 
       try {
@@ -161,7 +159,6 @@ describe("layer information", () => {
       ];
       const color = "#fffffg";
       const res = color.toLowerCase().match(/^0x[0-9a-f]+$/i);
-      console.log(`res = ${Boolean(res)}`);
 
       try {
         validateLayers(layerInfo);

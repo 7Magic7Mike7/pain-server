@@ -8,5 +8,5 @@
     "esModuleInterop": true,
     "skipLibCheck": true
   },
-  "include": ["index.ts", "scripts/**/*.ts"]
+  "include": ["index.ts", "src/**/*.ts"]
 }
