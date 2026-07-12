@@ -15,3 +15,11 @@ export class ServerConfig {
     });
   }
 }
+
+export class ApiConfig {
+  static readonly SURVEY: string = "/survey";
+  static readonly METRICS_BASE: string = "/metrics";
+  static readonly METRICS_TOGGLE: string = `${this.METRICS_BASE}/toggle`;
+  static readonly METRICS_STEP: string = `${this.METRICS_BASE}/surveyStep`;
+  static readonly METRICS_VIZMODE: string = `${this.METRICS_BASE}/vizmode`;
+}

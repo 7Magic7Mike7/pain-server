@@ -1,7 +1,7 @@
 import express from 'express';
 import { getAllLayerInfo, LayerInfo, validateLayers } from './config/layer-config';
 import { LOGGER } from './config/log-config';
-import { ServerConfig } from './config/server-config';
+import { ApiConfig, ServerConfig } from './config/server-config';
 import { getRowById, getPainLayer } from './loader/db-loader';
 import { parsePainOrigin } from './validation/input-validator';
 import { PainDbConfig } from './config/db-config';
@@ -9,6 +9,7 @@ import { PainDbConfig } from './config/db-config';
 
 // ######################################################################################
 export const app = express();
+app.use(express.json());
 
 
 // ######################################################################################
@@ -126,6 +127,67 @@ app.get('/init/:layer', async (req, res) => {
     apierror(apipath, new Error(errmsg));
     res.status(500).json({ error: errmsg});
   }
+});
+
+
+// ######################################################################################
+//        User Survey Endpoints
+// ######################################################################################
+
+app.post(ApiConfig.SURVEY, async (req, res) => {
+  apilog("POST", ApiConfig.SURVEY);
+  logger.apiinfo(`req.body = ${JSON.stringify(req.body)}`);
+  const { wordBubbles, wordBody, temporality, relations, painDescription } = req.body;
+  logger.apiinfo(`  wordBubbles = ${JSON.stringify(wordBubbles)}`);
+  logger.apiinfo(`  wordBody = ${JSON.stringify(wordBody)}`);
+  logger.apiinfo(`  temporality = ${JSON.stringify(temporality)}`);
+  logger.apiinfo(`  relations = ${JSON.stringify(relations)}`);
+  logger.apiinfo(`  painDescription = ${JSON.stringify(painDescription)}`);
+
+  // todo: transform the information to a coordinate
+  // todo: optionally, generate a text from the information
+
+  res.status(200).json({ lat: 7, lng: 7, text: "todo" });
+});
+
+
+// ######################################################################################
+//        User Metrics Endpoints
+// ######################################################################################
+
+app.post(ApiConfig.METRICS_TOGGLE, async (req, res) => {
+  apilog("POST", ApiConfig.METRICS_TOGGLE);
+  const { userId, kind, element, enabled } = req.body;
+  logger.apiinfo(`  userId = ${JSON.stringify(userId)}`);
+  logger.apiinfo(`  kind = ${JSON.stringify(kind)}`);
+  logger.apiinfo(`  element = ${JSON.stringify(element)}`);
+  logger.apiinfo(`  enabled = ${JSON.stringify(enabled)}`);
+
+  // todo: save in DB
+
+  res.status(200).send();
+});
+
+app.post(ApiConfig.METRICS_STEP, async (req, res) => {
+  apilog("POST", ApiConfig.METRICS_TOGGLE);
+  const { userId, step } = req.body;
+  logger.apiinfo(`  userId = ${JSON.stringify(userId)}`);
+  logger.apiinfo(`  step = ${JSON.stringify(step)}`);
+
+  // todo: save in DB
+
+  res.status(200).send();
+});
+
+app.post(ApiConfig.METRICS_VIZMODE, async (req, res) => {
+  apilog("POST", ApiConfig.METRICS_TOGGLE);
+  const { userId, mode } = req.body;
+  logger.apiinfo(`  userId = ${JSON.stringify(userId)}`);
+  logger.apiinfo(`  mode = ${JSON.stringify(mode)}`);
+
+  // todo: save in DB
+
+  res.status(200).send();
 });
 
 // SPA fallback: serve index.html for non-API routes
