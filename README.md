@@ -46,19 +46,28 @@ painorigin: string <br>
 - list of:
   - id: ascending `number`
     - represents a datapoint's unique (per pain origin) identifier
-  - lat: `number`
-    - represents the datapoint's latitude
-    - in [0, 180[
-  - lng: `number`
-    - represents the datapoint's longitude
-    - in [0, 360[
+  - aggrId: `integer`
+    - states the id of the datapoint that is an aggregation of this datapoint & others
+    - undefined for fully aggregated points
   - value: `number`
     - represents the datapoint's pain value
     - in [0, 1]
-  - datatype: `number`
-    - represents the datapoint's type of pain data
-  - painorigin: `number`
-    - represents the datapoint's pain origin (i.e., layer)
+  - category: `string`
+    - represents the datapoint's category of pain data
+  - lat: `number`
+    - optional
+    - represents the datapoint's latitude
+    - in [0, 180[
+  - lng: `number`
+    - optional
+    - represents the datapoint's longitude
+    - in [0, 360[
+  - country: `string`
+    - optional
+    - ISOA3 code of the country the datapoint is associate with
+  - word: `string`
+    - optional
+    - a word or short phrase associated with the datapoint
 
 # Frontend
 Serving the frontend developed in [this seperate repository](https://github.com/IsraViadest/pain-frontend)
