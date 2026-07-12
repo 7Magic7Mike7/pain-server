@@ -4,6 +4,7 @@ import { PainDbConfig } from '../config/db-config';
 import { LOGGER } from '../config/log-config';
 import { parsePainOrigin } from '../validation/input-validator';
 import { EXPERIMENTAL_LAYER_PREFIX, isExperimentalLayer } from '../config/layer-config';
+import { generateUserId } from '../config/user-config';
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pain_db';
 const pool = new Pool({ connectionString });
@@ -55,6 +56,14 @@ export async function getPainLayer(layer: string): Promise<PainData[]> {
     return pool.query(query)
       .then((result: { rows: PainData[]; }) => result.rows);
   }
+}
+
+// insert operations
+export async function registerUser(): Promise<string> {
+  const userId = generateUserId();
+  // todo: save in DB or repeat if userId already exists
+  // todo: store timestamp of registration
+  return userId;
 }
 
 LOGGER.database(`Using DB config: ${PainDbConfig.toString()}`);

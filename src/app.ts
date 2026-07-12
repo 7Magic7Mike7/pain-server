@@ -2,7 +2,7 @@ import express from 'express';
 import { getAllLayerInfo, LayerInfo, validateLayers } from './config/layer-config';
 import { LOGGER } from './config/log-config';
 import { ApiConfig, ServerConfig } from './config/server-config';
-import { getRowById, getPainLayer } from './loader/db-loader';
+import { getRowById, getPainLayer, registerUser } from './loader/db-loader';
 import { parsePainOrigin } from './validation/input-validator';
 import { PainDbConfig } from './config/db-config';
 
@@ -103,7 +103,13 @@ app.get('/db/:id', async (req, res) => {
 // send information about layer structure
 app.get('/init', async (req, res) => {
   apilog("GET", "/init");
-  res.json(Object.values(layerInfo));
+  try {
+    const userId = await registerUser();
+    res.json({ userId, layerInfo: Object.values(layerInfo) });
+  }
+  catch (error) {
+    res.status(500).json({ message: "Error while registering user.", error });
+  }
 });
 
 // send all (fully aggregated) data points for a layer
