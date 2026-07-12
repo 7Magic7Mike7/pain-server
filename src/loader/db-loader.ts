@@ -11,11 +11,13 @@ const logger = LOGGER.child({ service: "DBLoader" });   // logs db queries
 
 type PainData = {
     id: number;
-    lat: number;
-    lng: number;
+    aggrId: number;
     value: number;
-    datatype: string;
-    painorigin: string;
+    category: string;
+    lat?: number;
+    lng?: number;
+    country?: string;
+    word?: string;
 }
 
 // Parameterized query (prevents SQL injection)
