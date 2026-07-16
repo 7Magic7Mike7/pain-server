@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 
-import { PainDbConfig } from '../config/db-config';
+import { PainDbConfig, UserDbConfig } from '../config/db-config';
 import { LOGGER } from '../config/log-config';
 import { parsePainOrigin } from '../validation/input-validator';
 import { EXPERIMENTAL_LAYER_PREFIX, isExperimentalLayer } from '../config/layer-config';
@@ -59,11 +59,34 @@ export async function getPainLayer(layer: string): Promise<PainData[]> {
 }
 
 // insert operations
+const REGISTRATION_ATTEMPTS = 32;
 export async function registerUser(): Promise<string> {
-  const userId = generateUserId();
-  // todo: save in DB or repeat if userId already exists
-  // todo: store timestamp of registration
-  return userId;
+  for (let i = 0; i < REGISTRATION_ATTEMPTS; i++) {
+    const userId = generateUserId();
+    // todo: save in DB or repeat if userId already exists
+    const result = await pool.query(
+      `SELECT EXISTS(
+          SELECT 1
+          FROM ${UserDbConfig.TN_USERS}
+          WHERE ${UserDbConfig.COL_USER_ID} = $1
+      ) AS exists`,
+      [userId]
+    );
+    const exists = result.rows[0].exists;
+    if (exists) {
+      // UserId already exists
+      logger.info(`UserID ${userId} already exists - ${REGISTRATION_ATTEMPTS-i-1} retries with new userIds left.`);
+      continue;
+    }
+    else {
+      // Insert new player
+      logger.info(`Inserting new userId: ${userId}`);
+      await pool.query(`INSERT INTO ${UserDbConfig.TN_USERS} (${UserDbConfig.COL_DT}, ${UserDbConfig.COL_USER_ID}) VALUES (NOW(), $1)`, [userId]);
+      logger.info(`  UserId ${userId} inserted successfully.`);
+      return userId;
+    }
+  }
+  throw new Error(`Failed to create a unique userId within ${REGISTRATION_ATTEMPTS}.`);
 }
 
 LOGGER.database(`Using DB config: ${PainDbConfig.toString()}`);

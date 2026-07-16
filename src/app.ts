@@ -108,6 +108,7 @@ app.get('/init', async (req, res) => {
     res.json({ userId, layerInfo: Object.values(layerInfo) });
   }
   catch (error) {
+    apierror("/init", error);
     res.status(500).json({ message: "Error while registering user.", error });
   }
 });
