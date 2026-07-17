@@ -92,7 +92,7 @@ app.get('/db/:id', async (req, res) => {
   }
   catch (error) {
     apierror(apipath, error);
-    res.status(500).json({ error: 'Failed to fetch row with ' + error });
+    res.status(500).json({ message: 'Failed to fetch row.', error });
   }
 });
 
@@ -126,13 +126,13 @@ app.get('/init/:layer', async (req, res) => {
     }
     catch (error) {
       apierror(apipath, error);
-      res.status(500).json({ error: 'Failed to fetch pain layer with ' + error });
+      res.status(500).json({ message: `Failed to fetch pain layer ${layer}`, error });
     }
   }
   else {
     const errmsg = `${layer} is not among the known layers!`;
     apierror(apipath, new Error(errmsg));
-    res.status(500).json({ error: errmsg});
+    res.status(500).json({ message: errmsg, error: new Error("Invalid layer!")});
   }
 });
 
