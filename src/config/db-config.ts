@@ -48,3 +48,5 @@ export class UserDbConfig {
 
   private UserDbConfig() { }
 }
+
+export type SurveyStepNumber = 0 | 1 | 2 | 3 | 4 | 5;

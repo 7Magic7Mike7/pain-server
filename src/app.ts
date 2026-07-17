@@ -2,7 +2,7 @@ import express from 'express';
 import { getAllLayerInfo, LayerInfo, validateLayers } from './config/layer-config';
 import { LOGGER } from './config/log-config';
 import { ApiConfig, ServerConfig } from './config/server-config';
-import { getRowById, getPainLayer, registerUser } from './loader/db-loader';
+import { getRowById, getPainLayer, registerUser, storeToggleMetric, storeStepMetric, storeVisModeMetric } from './loader/db-loader';
 import { parsePainOrigin } from './validation/input-validator';
 import { PainDbConfig } from './config/db-config';
 
@@ -170,9 +170,14 @@ app.post(ApiConfig.METRICS_TOGGLE, async (req, res) => {
   logger.apiinfo(`  element = ${JSON.stringify(element)}`);
   logger.apiinfo(`  enabled = ${JSON.stringify(enabled)}`);
 
-  // todo: save in DB
-
-  res.status(200).send();
+  try {
+    await storeToggleMetric(userId, kind, element, enabled);
+    res.status(200).send();
+  }
+  catch (error) {
+    apierror(ApiConfig.METRICS_TOGGLE, error);
+    res.status(500).json({ message: `Failed to store toggle metrics for ${kind}/${element}.`, error });
+  }
 });
 
 app.post(ApiConfig.METRICS_STEP, async (req, res) => {
@@ -181,9 +186,14 @@ app.post(ApiConfig.METRICS_STEP, async (req, res) => {
   logger.apiinfo(`  userId = ${JSON.stringify(userId)}`);
   logger.apiinfo(`  step = ${JSON.stringify(step)}`);
 
-  // todo: save in DB
-
-  res.status(200).send();
+  try {
+    await storeStepMetric(userId,step);
+    res.status(200).send();
+  }
+  catch (error) {
+    apierror("Failed to store step metric", error);
+    res.status(500).json({ message: "Failed to store step metric.", error });
+  }
 });
 
 app.post(ApiConfig.METRICS_VIZMODE, async (req, res) => {
@@ -192,9 +202,14 @@ app.post(ApiConfig.METRICS_VIZMODE, async (req, res) => {
   logger.apiinfo(`  userId = ${JSON.stringify(userId)}`);
   logger.apiinfo(`  mode = ${JSON.stringify(mode)}`);
 
-  // todo: save in DB
-
-  res.status(200).send();
+  try {
+    await storeVisModeMetric(userId, mode);
+    res.status(200).send();
+  }
+  catch (error) {
+    apierror("Failed to store viz mode metric", error);
+    res.status(500).json({ message: "Failed to store viz mode metric.", error });
+  }
 });
 
 // SPA fallback: serve index.html for non-API routes
