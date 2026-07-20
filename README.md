@@ -68,7 +68,11 @@ painorigin: string <br>
   - word: `string`
     - optional
     - a word or short phrase associated with the datapoint
-
+### User Data
+#### /survey
+- /survey
+#### /metrics/toggle
+...
 # Frontend
 Serving the frontend developed in [this seperate repository](https://github.com/IsraViadest/pain-frontend)
 

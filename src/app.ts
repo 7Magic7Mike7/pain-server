@@ -5,6 +5,7 @@ import { ApiConfig, ServerConfig } from './config/server-config';
 import { getRowById, getPainLayer, registerUser, storeToggleMetric, storeStepMetric, storeVisModeMetric } from './loader/db-loader';
 import { parsePainOrigin } from './validation/input-validator';
 import { PainDbConfig } from './config/db-config';
+import { computeCoordinate, Coordinate } from './coordinate-computer';
 
 
 // ######################################################################################
@@ -151,10 +152,32 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
   logger.apiinfo(`  relations = ${JSON.stringify(relations)}`);
   logger.apiinfo(`  painDescription = ${JSON.stringify(painDescription)}`);
 
-  // todo: transform the information to a coordinate
-  // todo: optionally, generate a text from the information
-
-  res.status(200).json({ lat: 7, lng: 7, text: "todo" });
+  let coordinate: Coordinate | undefined;
+  let text: string | undefined;
+  try {
+    coordinate = await computeCoordinate(wordBubbles, wordBody, temporality, relations, painDescription);
+  }
+  catch (error) {
+    apierror(ApiConfig.SURVEY, error);  // todo: should these really use apierror if they don't fail due to API reasons?
+    res.status(500).json({ message: "Failedto compute coordinate from survey.", error });
+    return;
+  }
+  try {
+    // todo: optionally, generate a text from the information
+    text = "TODO";
+  }
+  catch (error) {
+    apierror(ApiConfig.SURVEY, error);  // todo: should these really use apierror if they don't fail due to API reasons?
+    res.status(500).json({ message: "Failed to generate text from survey.", error });
+    return;
+  }
+  if (coordinate && text) {
+    res.status(200).json({ lat: coordinate.lat, lng: coordinate.lng, text: "todo" });
+  }
+  else {
+    apierror(ApiConfig.SURVEY, new Error(`Either no coordinate or text! coordinate=${coordinate}, text="${text}"`));
+    res.status(500).json({ message: ``}); // todo
+  }
 });
 
 

@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 
-import { PainDbConfig, SurveyStepNumber, UserDbConfig } from '../config/db-config';
+import { PainDbConfig, PainOrigin, SurveyStepNumber, UserDbConfig } from '../config/db-config';
 import { LOGGER } from '../config/log-config';
 import { parsePainOrigin } from '../validation/input-validator';
 import { EXPERIMENTAL_LAYER_PREFIX, isExperimentalLayer } from '../config/layer-config';
@@ -10,7 +10,7 @@ const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:post
 const pool = new Pool({ connectionString });
 const logger = LOGGER.child({ service: "DBLoader" });   // logs db queries
 
-type PainData = {
+export type PainData = {
     id: number;
     aggrId: number;
     value: number;
@@ -64,6 +64,35 @@ export async function getUserDbId(userId: string): Promise<number | undefined> {
   const result = await pool.query(`SELECT ${UserDbConfig.COL_ID} FROM ${UserDbConfig.TN_USERS} WHERE ${UserDbConfig.COL_USER_ID} = $1`, [userId]);
   const resRow = result.rows[0];
   return resRow ? resRow[UserDbConfig.COL_ID] : undefined;
+}
+
+export async function getClosestDataPoint(painOrigin: PainOrigin, painValue: number): Promise<PainData> {
+  // TODO: analyze time costs because of join on big tables
+  // TODO: validate painOrigin!
+  logger.database(`Getting closest data point to ${painValue} ${painOrigin}`);
+  const query = `SELECT ${PainDbConfig.COL_ID} FROM
+    (
+      (SELECT ${PainDbConfig.COL_ID}, ${PainDbConfig.COL_VALUE} FROM ${painOrigin}
+        WHERE ${PainDbConfig.COL_AGGRID} IS NULL AND ${PainDbConfig.COL_VALUE} >= $1
+        ORDER BY ${PainDbConfig.COL_VALUE} LIMIT 1)
+      UNION ALL
+      (SELECT ${PainDbConfig.COL_ID}, ${PainDbConfig.COL_VALUE} FROM ${painOrigin}
+        WHERE ${PainDbConfig.COL_AGGRID} IS NULL AND ${PainDbConfig.COL_VALUE} < $1
+        ORDER BY ${PainDbConfig.COL_VALUE} LIMIT 1)
+    )
+    ORDER BY abs($1 - ${PainDbConfig.COL_VALUE}) LIMIT 1;
+  `;
+  const resDataPoint = await pool.query(query, [painValue]);
+  logger.info(`  resDataPoint.rows[0] = ${JSON.stringify(resDataPoint.rows[0])}`);
+  if (resDataPoint.rows[0]) {
+    const dbId = resDataPoint.rows[0][PainDbConfig.COL_ID];
+    const result = await pool.query(`SELECT * FROM ${painOrigin} WHERE ${PainDbConfig.COL_ID} = $1`, [dbId]);
+    logger.info(`  result.rows[0] = ${JSON.stringify(result.rows[0])}`);
+    return result.rows[0];
+  }
+  else {
+    throw new Error(`No closest datapoint found @${painOrigin} for pain=${painValue}. Make sure ${painOrigin} is initialized with data!`)
+  }
 }
 
 

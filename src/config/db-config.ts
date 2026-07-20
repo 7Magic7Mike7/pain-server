@@ -30,6 +30,9 @@ export class PainDbConfig {
   }
 }
 
+export const PAIN_ORIGINS = [PainDbConfig.TN_EMO, PainDbConfig.TN_ENV, PainDbConfig.TN_PHYS, PainDbConfig.TN_SOCIOECO] as const;
+export type PainOrigin = (typeof PAIN_ORIGINS)[number];
+
 export class UserDbConfig {
   static readonly TN_USERS = process.env.TNM_USERS?.toLowerCase() ?? "users";
   static readonly TN_TOGGLE = process.env.TNM_TOGGLE?.toLowerCase() ?? "togglemetrics";
