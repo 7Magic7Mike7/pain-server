@@ -34,7 +34,9 @@ export const PAIN_ORIGINS = [PainDbConfig.TN_EMO, PainDbConfig.TN_ENV, PainDbCon
 export type PainOrigin = (typeof PAIN_ORIGINS)[number];
 
 export class UserDbConfig {
+  // table names
   static readonly TN_USERS = process.env.TNM_USERS?.toLowerCase() ?? "users";
+  static readonly TN_USER_COORDINATES = process.env.TNM_USERCOORDINATES?.toLowerCase() ?? "usercoordinates";
   static readonly TN_TOGGLE = process.env.TNM_TOGGLE?.toLowerCase() ?? "togglemetrics";
   static readonly TN_STEP = process.env.TNM_STEP?.toLowerCase() ?? "stepmetrics";
   static readonly TN_VIS = process.env.TNM_VIS?.toLowerCase() ?? "vizmetrics";
@@ -43,11 +45,19 @@ export class UserDbConfig {
   static readonly COL_ID = process.env.COL_ID?.toLowerCase() ?? 'id';
   static readonly COL_DT = process.env.COL_DT?.toLowerCase() ?? 'datetime';
   static readonly COL_USER_ID = process.env.COL_USER_ID?.toLowerCase() ?? 'userId';
+  static readonly COL_LAT = process.env.COL_LAT?.toLowerCase() ?? 'lat';
+  static readonly COL_LNG = process.env.COL_LNG?.toLowerCase() ?? 'lng';
   static readonly COL_KIND = process.env.COL_KIND?.toLowerCase() ?? 'kind';
   static readonly COL_ELEM = process.env.COL_ELEM?.toLowerCase() ?? 'element';
   static readonly COL_ENABLED = process.env.COL_ENABLED?.toLowerCase() ?? 'enabled';
   static readonly COL_STEP = process.env.COL_STEP?.toLowerCase() ?? 'step';
   static readonly COL_VIS_MODE = process.env.COL_VIS_MODE?.toLowerCase() ?? 'mode';
+
+  // values
+  static readonly VAL_LAT_MIN = -90;  // inclusive
+  static readonly VAL_LAT_MAX = 90;   // exclusive
+  static readonly VAL_LNG_MIN = -180;  // inclusive
+  static readonly VAL_LNG_MAX = 180;   // exclusive
 
   private UserDbConfig() { }
 }

@@ -5,6 +5,7 @@ import { LOGGER } from '../config/log-config';
 import { parsePainOrigin } from '../validation/input-validator';
 import { EXPERIMENTAL_LAYER_PREFIX, isExperimentalLayer } from '../config/layer-config';
 import { generateUserId } from '../config/user-config';
+import { Coordinate } from '../coordinate-computer';
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pain_db';
 const pool = new Pool({ connectionString });
@@ -217,6 +218,35 @@ export async function storeVisModeMetric(userId: string, mode: string): Promise<
       throw new Error("Unknown error while storing vis mode metric.");
     }
   }
+}
+
+export async function storeUserCoordinate(userId: string, coordinate: Coordinate): Promise<boolean> {
+  logger.database("storeUserCoordinate()");
+  // validate parameters
+  if (coordinate.lat < UserDbConfig.VAL_LAT_MIN || UserDbConfig.VAL_LAT_MAX <= coordinate.lat) {
+    throw new Error(`Invalid latitude: ${UserDbConfig.VAL_LAT_MIN} <= ${coordinate.lat} < ${UserDbConfig.VAL_LAT_MAX} must be true!`);
+  }
+  if (coordinate.lng < UserDbConfig.VAL_LNG_MIN || UserDbConfig.VAL_LNG_MAX <= coordinate.lng) {
+    throw new Error(`Invalid longitude: ${UserDbConfig.VAL_LNG_MIN} <= ${coordinate.lng} < ${UserDbConfig.VAL_LNG_MAX} must be true!`);
+  }
+  // retrieve user from DB
+  const dbId = await getUserDbId(userId);
+  if (dbId == null) {
+    throw new Error(`Invalid userId! "${userId}" does not exist.`);
+  }
+  else {
+    // store the data
+    const query = `INSERT INTO ${UserDbConfig.TN_USER_COORDINATES} 
+      (${UserDbConfig.COL_DT}, ${UserDbConfig.COL_USER_ID}, ${UserDbConfig.COL_LAT}, ${UserDbConfig.COL_LNG})
+      VALUES
+      (NOW(), $1, $2, $3)`;
+    const result = await pool.query(query, [dbId, coordinate.lat, coordinate.lng]);
+    if (result.rowCount) {
+      logger.database("Successfully stored user coordinate.");
+      return true;
+    }
+  }
+  return false;
 }
 
 LOGGER.database(`Using DB config: ${PainDbConfig.toString()}`);

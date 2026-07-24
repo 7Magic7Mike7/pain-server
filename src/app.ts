@@ -2,7 +2,7 @@ import express from 'express';
 import { getAllLayerInfo, LayerInfo, validateLayers } from './config/layer-config';
 import { LOGGER } from './config/log-config';
 import { ApiConfig, ServerConfig } from './config/server-config';
-import { getRowById, getPainLayer, registerUser, storeToggleMetric, storeStepMetric, storeVisModeMetric } from './loader/db-loader';
+import { getRowById, getPainLayer, registerUser, storeToggleMetric, storeStepMetric, storeVisModeMetric, storeUserCoordinate } from './loader/db-loader';
 import { parsePainOrigin } from './validation/input-validator';
 import { PainDbConfig } from './config/db-config';
 import { computeCoordinate, Coordinate } from './coordinate-computer';
@@ -145,7 +145,8 @@ app.get('/init/:layer', async (req, res) => {
 app.post(ApiConfig.SURVEY, async (req, res) => {
   apilog("POST", ApiConfig.SURVEY);
   logger.apiinfo(`req.body = ${JSON.stringify(req.body)}`);
-  const { wordBubbles, wordBody, temporality, relations, painDescription } = req.body;
+  const { userId, wordBubbles, wordBody, temporality, relations, painDescription } = req.body;
+  logger.apiinfo(`  userId = ${JSON.stringify(userId)}`);
   logger.apiinfo(`  wordBubbles = ${JSON.stringify(wordBubbles)}`);
   logger.apiinfo(`  wordBody = ${JSON.stringify(wordBody)}`);
   logger.apiinfo(`  temporality = ${JSON.stringify(temporality)}`);
@@ -172,6 +173,14 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
     return;
   }
   if (coordinate && text) {
+    try {
+      if (!await storeUserCoordinate(userId, coordinate)) {
+        throw new Error("Failed to store computed coordinates!");
+      }
+    }
+    catch (error) {
+      apierror(ApiConfig.SURVEY, error)
+    }
     res.status(200).json({ lat: coordinate.lat, lng: coordinate.lng, text: "todo" });
   }
   else {
