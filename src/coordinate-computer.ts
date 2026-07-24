@@ -54,7 +54,9 @@ export async function computeCoordinate(wordBubbles: string[], wordBody: WordBod
   if (weightSum == 0) {   // TODO: find a better way instead of returning (0|0)
     weightSum = 1.0;
   }
-  return { lat: coordinate.lat / weightSum, lng: coordinate.lng / weightSum };
+  const userCoordinate: Coordinate = { lat: coordinate.lat / weightSum, lng: coordinate.lng / weightSum };
+  logger.info(`Computed userCoordinate = ${JSON.stringify(userCoordinate)}`);
+  return userCoordinate;
 }
 
 
