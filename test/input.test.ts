@@ -1,6 +1,8 @@
-import { describe, it, expect } from "vitest";
-import { PainDbConfig } from "../src/config/db-config";
+import { describe, it, expect, beforeAll } from "vitest";
+import { PainDbConfig, UserDbConfig } from "../src/config/db-config";
 import { parsePainOrigin } from "../src/validation/input-validator";
+import { storeUserCoordinate } from "../src/loader/db-loader";
+import { fail } from "node:assert";
 
 describe("pain origin", () => {
   describe("valid", () => {
@@ -43,6 +45,22 @@ describe("pain origin", () => {
       const origin = "layer";
       const result = parsePainOrigin(origin);
       expect(result, `string origin must not result in null!`).toBeNull();
+    });
+  });
+});
+
+describe("database calls", () => {
+  const userId = "mockuser";
+  describe("invalid", () => {
+    describe("User Coordinates", () => {
+      it("too small latitude", async () => {
+        const coordiante = { lat: UserDbConfig.VAL_LAT_MIN - 1, lng: UserDbConfig.VAL_LNG_MIN };
+        try {
+          await storeUserCoordinate(userId, coordiante);
+          fail();
+        }
+        catch (error) { }
+      });
     });
   });
 });

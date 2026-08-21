@@ -52,7 +52,7 @@ function physLayer(): LayerInfo {
 function socioecoLayer(): LayerInfo {
   return {
     id: PainDbConfig.TN_SOCIOECO,
-    label: "Socio-economical Pain",
+    label: "Socio-economic Pain",
     desc: "todo",
     color: "#ffff00",
     geospatial: false,
