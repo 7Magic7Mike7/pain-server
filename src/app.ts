@@ -1,14 +1,16 @@
 import express from 'express';
 import { getAllLayerInfo, LayerInfo, validateLayers } from './config/layer-config';
 import { LOGGER } from './config/log-config';
-import { ServerConfig } from './config/server-config';
-import { getRowById, getPainLayer } from './loader/db-loader';
+import { ApiConfig, ServerConfig } from './config/server-config';
+import { getRowById, getPainLayer, registerUser, storeToggleMetric, storeStepMetric, storeVisModeMetric, storeUserCoordinate } from './loader/db-loader';
 import { parsePainOrigin } from './validation/input-validator';
 import { PainDbConfig } from './config/db-config';
+import { computeCoordinate, Coordinate } from './coordinate-computer';
 
 
 // ######################################################################################
 export const app = express();
+app.use(express.json());
 
 
 // ######################################################################################
@@ -91,7 +93,7 @@ app.get('/db/:id', async (req, res) => {
   }
   catch (error) {
     apierror(apipath, error);
-    res.status(500).json({ error: 'Failed to fetch row with ' + error });
+    res.status(500).json({ message: 'Failed to fetch row.', error });
   }
 });
 
@@ -102,7 +104,14 @@ app.get('/db/:id', async (req, res) => {
 // send information about layer structure
 app.get('/init', async (req, res) => {
   apilog("GET", "/init");
-  res.json(Object.values(layerInfo));
+  try {
+    const userId = await registerUser();
+    res.json({ userId, layerInfo: Object.values(layerInfo) });
+  }
+  catch (error) {
+    apierror("/init", error);
+    res.status(500).json({ message: "Error while registering user.", error });
+  }
 });
 
 // send all (fully aggregated) data points for a layer
@@ -118,13 +127,120 @@ app.get('/init/:layer', async (req, res) => {
     }
     catch (error) {
       apierror(apipath, error);
-      res.status(500).json({ error: 'Failed to fetch pain layer with ' + error });
+      res.status(500).json({ message: `Failed to fetch pain layer ${layer}`, error });
     }
   }
   else {
     const errmsg = `${layer} is not among the known layers!`;
     apierror(apipath, new Error(errmsg));
-    res.status(500).json({ error: errmsg});
+    res.status(500).json({ message: errmsg, error: new Error("Invalid layer!")});
+  }
+});
+
+
+// ######################################################################################
+//        User Survey Endpoints
+// ######################################################################################
+
+app.post(ApiConfig.SURVEY, async (req, res) => {
+  apilog("POST", ApiConfig.SURVEY);
+  logger.apiinfo(`req.body = ${JSON.stringify(req.body)}`);
+  const { userId, wordBubbles, wordBody, temporality, relations, painDescription } = req.body;
+  logger.apiinfo(`  userId = ${JSON.stringify(userId)}`);
+  logger.apiinfo(`  wordBubbles = ${JSON.stringify(wordBubbles)}`);
+  logger.apiinfo(`  wordBody = ${JSON.stringify(wordBody)}`);
+  logger.apiinfo(`  temporality = ${JSON.stringify(temporality)}`);
+  logger.apiinfo(`  relations = ${JSON.stringify(relations)}`);
+  logger.apiinfo(`  painDescription = ${JSON.stringify(painDescription)}`);
+
+  let coordinate: Coordinate | undefined;
+  let text: string | undefined;
+  try {
+    coordinate = await computeCoordinate(wordBubbles, wordBody, temporality, relations, painDescription);
+  }
+  catch (error) {
+    apierror(ApiConfig.SURVEY, error);  // todo: should these really use apierror if they don't fail due to API reasons?
+    res.status(500).json({ message: "Failedto compute coordinate from survey.", error });
+    return;
+  }
+  try {
+    // todo: optionally, generate a text from the information
+    text = "TODO";
+  }
+  catch (error) {
+    apierror(ApiConfig.SURVEY, error);  // todo: should these really use apierror if they don't fail due to API reasons?
+    res.status(500).json({ message: "Failed to generate text from survey.", error });
+    return;
+  }
+  if (coordinate && text) {
+    try {
+      if (!await storeUserCoordinate(userId, coordinate)) {
+        throw new Error("Failed to store computed coordinates!");
+      }
+    }
+    catch (error) {
+      apierror(ApiConfig.SURVEY, error)
+    }
+    res.status(200).json({ lat: coordinate.lat, lng: coordinate.lng, text: "todo" });
+  }
+  else {
+    apierror(ApiConfig.SURVEY, new Error(`Either no coordinate or text! coordinate=${coordinate}, text="${text}"`));
+    res.status(500).json({ message: ``}); // todo
+  }
+});
+
+
+// ######################################################################################
+//        User Metrics Endpoints
+// ######################################################################################
+
+app.post(ApiConfig.METRICS_TOGGLE, async (req, res) => {
+  apilog("POST", ApiConfig.METRICS_TOGGLE);
+  const { userId, kind, element, enabled } = req.body;
+  logger.apiinfo(`  userId = ${JSON.stringify(userId)}`);
+  logger.apiinfo(`  kind = ${JSON.stringify(kind)}`);
+  logger.apiinfo(`  element = ${JSON.stringify(element)}`);
+  logger.apiinfo(`  enabled = ${JSON.stringify(enabled)}`);
+
+  try {
+    await storeToggleMetric(userId, kind, element, enabled);
+    res.status(200).send();
+  }
+  catch (error) {
+    apierror(ApiConfig.METRICS_TOGGLE, error);
+    res.status(500).json({ message: `Failed to store toggle metrics for ${kind}/${element}.`, error });
+  }
+});
+
+app.post(ApiConfig.METRICS_STEP, async (req, res) => {
+  apilog("POST", ApiConfig.METRICS_TOGGLE);
+  const { userId, step } = req.body;
+  logger.apiinfo(`  userId = ${JSON.stringify(userId)}`);
+  logger.apiinfo(`  step = ${JSON.stringify(step)}`);
+
+  try {
+    await storeStepMetric(userId,step);
+    res.status(200).send();
+  }
+  catch (error) {
+    apierror("Failed to store step metric", error);
+    res.status(500).json({ message: "Failed to store step metric.", error });
+  }
+});
+
+app.post(ApiConfig.METRICS_VIZMODE, async (req, res) => {
+  apilog("POST", ApiConfig.METRICS_TOGGLE);
+  const { userId, mode } = req.body;
+  logger.apiinfo(`  userId = ${JSON.stringify(userId)}`);
+  logger.apiinfo(`  mode = ${JSON.stringify(mode)}`);
+
+  try {
+    await storeVisModeMetric(userId, mode);
+    res.status(200).send();
+  }
+  catch (error) {
+    apierror("Failed to store viz mode metric", error);
+    res.status(500).json({ message: "Failed to store viz mode metric.", error });
   }
 });
 
