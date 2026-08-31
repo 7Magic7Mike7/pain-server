@@ -145,7 +145,8 @@ app.get('/init/:layer', async (req, res) => {
 app.post(ApiConfig.SURVEY, async (req, res) => {
   apilog("POST", ApiConfig.SURVEY);
   logger.apiinfo(`req.body = ${JSON.stringify(req.body)}`);
-  const { userId, wordBubbles, wordBody, temporality, relations, painDescription } = req.body;
+  const { userId, consent, wordBubbles, wordBody, temporality, relations, painDescription } = req.body;
+  logger.apiinfo(`  consent = ${JSON.stringify(consent)}`);
   logger.apiinfo(`  userId = ${JSON.stringify(userId)}`);
   logger.apiinfo(`  wordBubbles = ${JSON.stringify(wordBubbles)}`);
   logger.apiinfo(`  wordBody = ${JSON.stringify(wordBody)}`);
@@ -160,7 +161,7 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
   }
   catch (error) {
     apierror(ApiConfig.SURVEY, error);  // todo: should these really use apierror if they don't fail due to API reasons?
-    res.status(500).json({ message: "Failedto compute coordinate from survey.", error });
+    res.status(500).json({ message: "Failed to compute coordinate from survey.", error });
     return;
   }
   try {
@@ -174,8 +175,11 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
   }
   if (coordinate && text) {
     try {
-      if (!await storeUserCoordinate(userId, coordinate)) {
-        throw new Error("Failed to store computed coordinates!");
+      // only store resulting coordinate if the user gave consent
+      if (consent) {
+        if (!await storeUserCoordinate(userId, coordinate)) {
+          throw new Error("Failed to store computed coordinates!");
+        }
       }
     }
     catch (error) {
