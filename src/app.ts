@@ -51,6 +51,32 @@ const USER_UNINITIALIZED = "uninitialized";
 // ######################################################################################
 
 const logger = LOGGER.child({ service: "API" });
+const PAIN_MESSAGE_URL = process.env.PAIN_MESSAGE_URL ?? "http://pain-message:7246";
+const PAIN_MESSAGE_TIMEOUT_MS = 5_000;
+const PAIN_MESSAGE_ERROR = "Failed to generate survey message.";
+
+type PainMessageResponse = {
+  paragraph: string;
+  lat: number;
+  lng: number;
+};
+
+function isPainMessageResponse(value: unknown): value is PainMessageResponse {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) return false;
+  const response = value as Record<string, unknown>;
+  return (
+    typeof response.paragraph === "string" &&
+    response.paragraph.trim().length > 0 &&
+    typeof response.lat === "number" &&
+    Number.isFinite(response.lat) &&
+    response.lat >= -90 &&
+    response.lat <= 90 &&
+    typeof response.lng === "number" &&
+    Number.isFinite(response.lng) &&
+    response.lng >= -180 &&
+    response.lng <= 180
+  );
+}
 /**
  * Uses logger.apiinfo() to log information about API calls.
  * 
@@ -189,47 +215,59 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
     return res.status(400).json({ message: msg });
   }
 
-  // try to compute a coordinate from the user input
-  let coordinate: Coordinate | undefined;
+  let messageResponse: Response;
   try {
-    coordinate = await computeCoordinate(wordBubbles, wordBody, temporality, relations, painDescription);
+    messageResponse = await fetch(`${PAIN_MESSAGE_URL}/survey`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ wordBubbles, wordBody, temporality, relations, painDescription }),
+      signal: AbortSignal.timeout(PAIN_MESSAGE_TIMEOUT_MS),
+    });
   }
   catch (error) {
-    logger.error({ err: error }, `Error during computeCoordinate() for userId=\"${userId}\"`, `req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: "Failed to compute coordinate from survey.", error: new Error("Error during coordiante computation.") });
+    apierror(ApiConfig.SURVEY, userId, error);
+    res.status(502).json({ message: PAIN_MESSAGE_ERROR });
+    return;
   }
 
-  // try to generate text from the user input
-  let text: string | undefined;
+  if (!messageResponse.ok) {
+    apierror(ApiConfig.SURVEY, userId, new Error(`pain-message returned ${messageResponse.status}`));
+    const status = messageResponse.status === 400 || messageResponse.status === 413
+      ? messageResponse.status
+      : 502;
+    res.status(status).json({ message: PAIN_MESSAGE_ERROR });
+    return;
+  }
+
+  let message: unknown;
   try {
-    text = generateText(painDescription);
+    message = await messageResponse.json();
   }
   catch (error) {
-    logger.error({ err: error }, `Error during generateText() for userId=${userId}`, `req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: "Failed to generate text from survey.", error: new Error("Error during text generation") });
+    apierror(ApiConfig.SURVEY, userId, error);
+    res.status(502).json({ message: PAIN_MESSAGE_ERROR });
+    return;
   }
 
-  if (coordinate && text) {
-    try {
-      // only store resulting coordinate if the user gave consent
-      if (consent) {
-        if (!await storeUserCoordinate(userId, coordinate)) {
-          logger.error(`Failed to store user coordinate for userId=${userId}.`);
-        }
+  if (!isPainMessageResponse(message)) {
+    apierror(ApiConfig.SURVEY, userId, new Error("pain-message returned an invalid response"));
+    res.status(502).json({ message: PAIN_MESSAGE_ERROR });
+    return;
+  }
+
+  const coordinate = { lat: message.lat, lng: message.lng };
+  try {
+    // only store resulting coordinate if the user gave consent
+    if (consent) {
+      if (!await storeUserCoordinate(userId, coordinate)) {
+        throw new Error("Failed to store computed coordinates!");
       }
     }
-    catch (error) {
-      apierror(ApiConfig.SURVEY, userId, error);
-    }
-    // we still send 200 so the user can receive their coordiante & text
-    return res.status(200).json({ lat: coordinate.lat, lng: coordinate.lng, text });
   }
-  else {
-    const errMsg = `Either no coordinate or text was computed! coordinate=${coordinate}, text="${text}"`;
-    logger.apierror(`Failed to either compute a coordinate or text for userId=\"${userId}\"!
-      coordinate=${coordinate}, text="${text}", req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: errMsg, error: new Error("Invalid coordinate or text computation!")});
+  catch (error) {
+    apierror(ApiConfig.SURVEY, userId, error);
   }
+  res.status(200).json({ lat: coordinate.lat, lng: coordinate.lng, text: message.paragraph });
 });
 
 

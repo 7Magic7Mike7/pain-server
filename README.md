@@ -1,4 +1,9 @@
-The PPP Map's backend server including the frontend that will be served to users.
+# Pain Server
+
+Last Updated: 2026-09-01
+Version: 0.1.0
+
+The PPP Map's backend server, including the frontend served to users.
 
 # Backend
 programmed using Node.js & Typescript
@@ -70,7 +75,39 @@ painorigin: string <br>
     - a word or short phrase associated with the datapoint
 ### User Data
 #### /survey
-- /survey
+
+`POST /survey` forwards the five survey answer fields to the private `pain-message` service:
+
+- `wordBubbles`
+- `wordBody`
+- `temporality`
+- `relations`
+- `painDescription`
+
+`userId` and `consent` are not forwarded. The response uses the message service's coordinate and
+body-only paragraph:
+
+```json
+{
+  "lat": 12.5,
+  "lng": -47.25,
+  "text": "Ice cracks beside the iron rail."
+}
+```
+
+When consent is true, this same coordinate is offered to the existing local persistence path.
+Downstream request errors remain `400` or `413`; an unavailable service, invalid response, or
+downstream server error returns `502` with `Failed to generate survey message.`
+
+Set the service URL with:
+
+```text
+PAIN_MESSAGE_URL=http://pain-message:7246
+```
+
+The Compose stack supplies this value. A direct host run can temporarily use
+`http://127.0.0.1:17246` when the message container is published there for inspection.
+
 #### /metrics/toggle
 ...
 # Frontend
