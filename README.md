@@ -105,8 +105,14 @@ Set the service URL with:
 PAIN_MESSAGE_URL=http://pain-message:7246
 ```
 
-The Compose stack supplies this value. A direct host run can temporarily use
-`http://127.0.0.1:17246` when the message container is published there for inspection.
+The Compose stack supplies this value over its private network. Direct host survey support requires
+temporarily publishing the message container on `17246` and setting the URL for that command:
+
+```bash
+PAIN_MESSAGE_URL=http://127.0.0.1:17246 npm run dev
+```
+
+Without that explicit setup, use the integrated Compose server for survey testing.
 
 #### /metrics/toggle
 ...
