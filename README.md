@@ -114,6 +114,16 @@ PAIN_MESSAGE_URL=http://127.0.0.1:17246 npm run dev
 
 Without that explicit setup, use the integrated Compose server for survey testing.
 
+Message selection is controlled by two constants near the top of `src/app.ts`:
+
+```ts
+const PAIN_MESSAGE_MAX_SENTENCES = 3;
+const PAIN_MESSAGE_CHOSEN_BY = "priority";
+```
+
+`priority` is the fixed bank-priority selector and does not use embeddings. Change these constants
+when the installation needs a different sentence count or selection method.
+
 #### /metrics/toggle
 ...
 # Frontend

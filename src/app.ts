@@ -53,6 +53,8 @@ const USER_UNINITIALIZED = "uninitialized";
 const logger = LOGGER.child({ service: "API" });
 const PAIN_MESSAGE_URL = process.env.PAIN_MESSAGE_URL ?? "http://pain-message:7246";
 const PAIN_MESSAGE_TIMEOUT_MS = 5_000;
+const PAIN_MESSAGE_MAX_SENTENCES = 3;
+const PAIN_MESSAGE_CHOSEN_BY = "priority";
 const PAIN_MESSAGE_ERROR = "Failed to generate survey message.";
 
 type PainMessageResponse = {
@@ -220,7 +222,15 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
     messageResponse = await fetch(`${PAIN_MESSAGE_URL}/survey`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ wordBubbles, wordBody, temporality, relations, painDescription }),
+      body: JSON.stringify({
+        wordBubbles,
+        wordBody,
+        temporality,
+        relations,
+        painDescription,
+        max_sentences: PAIN_MESSAGE_MAX_SENTENCES,
+        chosen_by: PAIN_MESSAGE_CHOSEN_BY,
+      }),
       signal: AbortSignal.timeout(PAIN_MESSAGE_TIMEOUT_MS),
     });
   }
