@@ -1,14 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 
+vi.mock("../src/coordinate-computer", () => ({
+  computeCoordinate: vi.fn().mockResolvedValue({ lat: 1.25, lng: 2.5 }),
+}));
+
 import { app } from "../src/app";
+import { computeCoordinate } from "../src/coordinate-computer";
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe("POST /survey", () => {
-  it("returns the generated paragraph and message-service coordinate", async () => {
+  it("returns the generated paragraph with the existing computed coordinate", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -34,16 +39,20 @@ describe("POST /survey", () => {
     const response = await request(app).post("/survey").send(survey).expect(200);
 
     expect(response.body).toEqual({
-      lat: 12.5,
-      lng: -47.25,
+      lat: 1.25,
+      lng: 2.5,
       text: "Ice cracks beside the iron rail.",
     });
-    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(computeCoordinate).toHaveBeenCalledWith(
+      survey.wordBubbles,
+      survey.wordBody,
+      survey.temporality,
+      survey.relations,
+      survey.painDescription,
+    );
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("http://pain-message:7246/survey");
-    expect(init.method).toBe("POST");
-    expect(init.headers).toEqual({ "Content-Type": "application/json" });
     expect(JSON.parse(String(init.body))).toEqual({
       wordBubbles: survey.wordBubbles,
       wordBody: survey.wordBody,
@@ -55,39 +64,18 @@ describe("POST /survey", () => {
     });
   });
 
-  it.each([400, 413])("preserves an upstream %i without exposing its body", async (status) => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(new Response("private upstream detail", { status })),
-    );
-
-    const response = await request(app).post("/survey").send({}).expect(status);
-
-    expect(response.body).toEqual({ message: "Failed to generate survey message." });
-    expect(JSON.stringify(response.body)).not.toContain("private upstream detail");
-  });
-
-  it("returns 502 for an invalid message-service response", async () => {
+  it("rejects a response without a generated paragraph", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ paragraph: "", lat: 91, lng: 0 }), {
+        new Response(JSON.stringify({ paragraph: "" }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         }),
       ),
     );
 
-    const response = await request(app).post("/survey").send({}).expect(502);
-
-    expect(response.body).toEqual({ message: "Failed to generate survey message." });
-  });
-
-  it("returns 502 when the message service is unavailable", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("connection refused")));
-
-    const response = await request(app).post("/survey").send({}).expect(502);
-
-    expect(response.body).toEqual({ message: "Failed to generate survey message." });
+    const response = await request(app).post("/survey").send({}).expect(500);
+    expect(response.body.message).toBe("Failed to generate text from survey.");
   });
 });

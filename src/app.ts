@@ -55,12 +55,9 @@ const PAIN_MESSAGE_URL = process.env.PAIN_MESSAGE_URL ?? "http://pain-message:72
 const PAIN_MESSAGE_TIMEOUT_MS = 5_000;
 const PAIN_MESSAGE_MAX_SENTENCES = 3;
 const PAIN_MESSAGE_CHOSEN_BY = "priority";
-const PAIN_MESSAGE_ERROR = "Failed to generate survey message.";
 
 type PainMessageResponse = {
   paragraph: string;
-  lat: number;
-  lng: number;
 };
 
 function isPainMessageResponse(value: unknown): value is PainMessageResponse {
@@ -68,15 +65,7 @@ function isPainMessageResponse(value: unknown): value is PainMessageResponse {
   const response = value as Record<string, unknown>;
   return (
     typeof response.paragraph === "string" &&
-    response.paragraph.trim().length > 0 &&
-    typeof response.lat === "number" &&
-    Number.isFinite(response.lat) &&
-    response.lat >= -90 &&
-    response.lat <= 90 &&
-    typeof response.lng === "number" &&
-    Number.isFinite(response.lng) &&
-    response.lng >= -180 &&
-    response.lng <= 180
+    response.paragraph.trim().length > 0
   );
 }
 /**
@@ -217,9 +206,18 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
     return res.status(400).json({ message: msg });
   }
 
-  let messageResponse: Response;
+  let coordinate: Coordinate | undefined;
+  let text: string | undefined;
   try {
-    messageResponse = await fetch(`${PAIN_MESSAGE_URL}/survey`, {
+    coordinate = await computeCoordinate(wordBubbles, wordBody, temporality, relations, painDescription);
+  }
+  catch (error) {
+    apierror(ApiConfig.SURVEY, userId, error);  // todo: should these really use apierror if they don't fail due to API reasons?
+    res.status(500).json({ message: "Failed to compute coordinate from survey.", error });
+    return;
+  }
+  try {
+    const messageResponse = await fetch(`${PAIN_MESSAGE_URL}/survey`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -233,51 +231,41 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
       }),
       signal: AbortSignal.timeout(PAIN_MESSAGE_TIMEOUT_MS),
     });
+
+    if (!messageResponse.ok) {
+      throw new Error(`pain-message returned ${messageResponse.status}`);
+    }
+
+    const message: unknown = await messageResponse.json();
+    if (!isPainMessageResponse(message)) {
+      throw new Error("pain-message returned an invalid response");
+    }
+
+    text = message.paragraph;
   }
   catch (error) {
-    apierror(ApiConfig.SURVEY, userId, error);
-    res.status(502).json({ message: PAIN_MESSAGE_ERROR });
+    apierror(ApiConfig.SURVEY, userId, error);  // todo: should these really use apierror if they don't fail due to API reasons?
+    res.status(500).json({ message: "Failed to generate text from survey.", error });
     return;
   }
-
-  if (!messageResponse.ok) {
-    apierror(ApiConfig.SURVEY, userId, new Error(`pain-message returned ${messageResponse.status}`));
-    const status = messageResponse.status === 400 || messageResponse.status === 413
-      ? messageResponse.status
-      : 502;
-    res.status(status).json({ message: PAIN_MESSAGE_ERROR });
-    return;
-  }
-
-  let message: unknown;
-  try {
-    message = await messageResponse.json();
-  }
-  catch (error) {
-    apierror(ApiConfig.SURVEY, userId, error);
-    res.status(502).json({ message: PAIN_MESSAGE_ERROR });
-    return;
-  }
-
-  if (!isPainMessageResponse(message)) {
-    apierror(ApiConfig.SURVEY, userId, new Error("pain-message returned an invalid response"));
-    res.status(502).json({ message: PAIN_MESSAGE_ERROR });
-    return;
-  }
-
-  const coordinate = { lat: message.lat, lng: message.lng };
-  try {
-    // only store resulting coordinate if the user gave consent
-    if (consent) {
-      if (!await storeUserCoordinate(userId, coordinate)) {
-        throw new Error("Failed to store computed coordinates!");
+  if (coordinate && text) {
+    try {
+      // only store resulting coordinate if the user gave consent
+      if (consent) {
+        if (!await storeUserCoordinate(userId, coordinate)) {
+          throw new Error("Failed to store computed coordinates!");
+        }
       }
     }
+    catch (error) {
+      apierror(ApiConfig.SURVEY, userId, error)
+    }
+    res.status(200).json({ lat: coordinate.lat, lng: coordinate.lng, text });
   }
-  catch (error) {
-    apierror(ApiConfig.SURVEY, userId, error);
+  else {
+    apierror(ApiConfig.SURVEY, userId, new Error(`Either no coordinate or text! coordinate=${coordinate}, text="${text}"`));
+    res.status(500).json({ message: ``}); // todo
   }
-  res.status(200).json({ lat: coordinate.lat, lng: coordinate.lng, text: message.paragraph });
 });
 
 

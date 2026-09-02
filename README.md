@@ -1,9 +1,4 @@
-# Pain Server
-
-Last Updated: 2026-09-01
-Version: 0.1.0
-
-The PPP Map's backend server, including the frontend served to users.
+The PPP Map's backend server including the frontend that will be served to users.
 
 # Backend
 programmed using Node.js & Typescript
@@ -75,55 +70,7 @@ painorigin: string <br>
     - a word or short phrase associated with the datapoint
 ### User Data
 #### /survey
-
-`POST /survey` forwards the five survey answer fields to the private `pain-message` service:
-
-- `wordBubbles`
-- `wordBody`
-- `temporality`
-- `relations`
-- `painDescription`
-
-`userId` and `consent` are not forwarded. The response uses the message service's coordinate and
-body-only paragraph:
-
-```json
-{
-  "lat": 12.5,
-  "lng": -47.25,
-  "text": "Ice cracks beside the iron rail."
-}
-```
-
-When consent is true, this same coordinate is offered to the existing local persistence path.
-Downstream request errors remain `400` or `413`; an unavailable service, invalid response, or
-downstream server error returns `502` with `Failed to generate survey message.`
-
-Set the service URL with:
-
-```text
-PAIN_MESSAGE_URL=http://pain-message:7246
-```
-
-The Compose stack supplies this value over its private network. Direct host survey support requires
-temporarily publishing the message container on `17246` and setting the URL for that command:
-
-```bash
-PAIN_MESSAGE_URL=http://127.0.0.1:17246 npm run dev
-```
-
-Without that explicit setup, use the integrated Compose server for survey testing.
-
-Message selection is controlled by two constants near the top of `src/app.ts`:
-
-```ts
-const PAIN_MESSAGE_MAX_SENTENCES = 3;
-const PAIN_MESSAGE_CHOSEN_BY = "priority";
-```
-
-`priority` is the fixed bank-priority selector and does not use embeddings. Change these constants
-when the installation needs a different sentence count or selection method.
-
+- /survey
 #### /metrics/toggle
 ...
 # Frontend
