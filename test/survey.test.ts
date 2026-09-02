@@ -59,8 +59,6 @@ describe("POST /survey", () => {
       temporality: survey.temporality,
       relations: survey.relations,
       painDescription: survey.painDescription,
-      max_sentences: 3,
-      chosen_by: "priority",
     });
   });
 

@@ -52,22 +52,6 @@ const USER_UNINITIALIZED = "uninitialized";
 
 const logger = LOGGER.child({ service: "API" });
 const PAIN_MESSAGE_URL = process.env.PAIN_MESSAGE_URL ?? "http://pain-message:7246";
-const PAIN_MESSAGE_TIMEOUT_MS = 5_000;
-const PAIN_MESSAGE_MAX_SENTENCES = 3;
-const PAIN_MESSAGE_CHOSEN_BY = "priority";
-
-type PainMessageResponse = {
-  paragraph: string;
-};
-
-function isPainMessageResponse(value: unknown): value is PainMessageResponse {
-  if (value == null || typeof value !== "object" || Array.isArray(value)) return false;
-  const response = value as Record<string, unknown>;
-  return (
-    typeof response.paragraph === "string" &&
-    response.paragraph.trim().length > 0
-  );
-}
 /**
  * Uses logger.apiinfo() to log information about API calls.
  * 
@@ -226,18 +210,15 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
         temporality,
         relations,
         painDescription,
-        max_sentences: PAIN_MESSAGE_MAX_SENTENCES,
-        chosen_by: PAIN_MESSAGE_CHOSEN_BY,
       }),
-      signal: AbortSignal.timeout(PAIN_MESSAGE_TIMEOUT_MS),
     });
 
     if (!messageResponse.ok) {
       throw new Error(`pain-message returned ${messageResponse.status}`);
     }
 
-    const message: unknown = await messageResponse.json();
-    if (!isPainMessageResponse(message)) {
+    const message = await messageResponse.json() as { paragraph?: unknown };
+    if (typeof message.paragraph !== "string" || !message.paragraph.trim()) {
       throw new Error("pain-message returned an invalid response");
     }
 
