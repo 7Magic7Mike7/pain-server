@@ -79,7 +79,7 @@ export async function getClosestDataPoint(painOrigin: PainOrigin, painValue: num
       UNION ALL
       (SELECT ${PainDbConfig.COL_ID}, ${PainDbConfig.COL_VALUE} FROM ${painOrigin}
         WHERE ${PainDbConfig.COL_AGGRID} IS NULL AND ${PainDbConfig.COL_VALUE} < $1
-        ORDER BY ${PainDbConfig.COL_VALUE} LIMIT 1)
+        ORDER BY ${PainDbConfig.COL_VALUE} DESC LIMIT 1)
     )
     ORDER BY abs($1 - ${PainDbConfig.COL_VALUE}) LIMIT 1;
   `;
