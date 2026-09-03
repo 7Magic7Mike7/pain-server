@@ -6,6 +6,7 @@ import { getRowById, getPainLayer, registerUser, storeToggleMetric, storeStepMet
 import { parsePainOrigin } from './validation/input-validator';
 import { PainDbConfig } from './config/db-config';
 import { computeCoordinate, Coordinate } from './coordinate-computer';
+import { generateText } from './text-generation';
 
 
 // ######################################################################################
@@ -165,8 +166,7 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
     return;
   }
   try {
-    // todo: optionally, generate a text from the information
-    text = "TODO";
+    text = generateText(painDescription);
   }
   catch (error) {
     apierror(ApiConfig.SURVEY, error);  // todo: should these really use apierror if they don't fail due to API reasons?
