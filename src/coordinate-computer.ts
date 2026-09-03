@@ -1,3 +1,4 @@
+import { countryToCoordinate } from "./config/country-coordinate-config";
 import { PAIN_ORIGINS, PainDbConfig, PainOrigin } from "./config/db-config";
 import { LOGGER } from "./config/log-config";
 import { getClosestDataPoint, PainData } from "./loader/db-loader";
@@ -174,7 +175,14 @@ function extractWordBodyCoordinates(selectedOriginWords: string[], wordBody: Wor
 function extractCoordinate(dataPoint: PainData): Coordinate {
   logger.debug(`Extracting coordinate from datapoint = ${JSON.stringify(dataPoint)}`);
   if (dataPoint.country) {
-    return { lat: 7, lng: 0 };  // todo: define coordinates for every country
+    const countryCoordiante = countryToCoordinate(dataPoint.country);
+    if (countryCoordiante) {
+      return countryCoordiante;
+    }
+    else {
+      logger.error(`Failed to get coordinate for country=\"${dataPoint.country}\". Sending (0|0) instead.`);
+      return { lat: 0, lng: 0};
+    }
   }
   else if(dataPoint.lat && dataPoint.lng) {
     return { lat: dataPoint.lat, lng: dataPoint.lng };
