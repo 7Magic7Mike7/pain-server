@@ -7,14 +7,11 @@ const DEV = ServerConfig.DEV_MODE;
 // log levels:
 // trace(10) → debug(20) → info(30) → warn(40) → error(50) → fatal(60)
 export const LOGGER = pino({
-  level: DEV ? 'debug' : process.env.LOG_LEVEL || 'error',
+  level: DEV ? 'debug' : process.env.LOG_LEVEL || 'info',
   customLevels: {
-    apiinfo: 24,
-    apiwarn: 25,
-    apierror: 29,
-    clientwarn: 31,
-    clienterr: 32,
-    database: 35,  // between info(30) and warn(40)
+    apiinfo: 24,    // less important than regular info
+    apierror: 51,   // basically the same importance as other errors, just 51 to easier distinguish them
+    database: 35,   // between info(30) and warn(40)
   },
   base: {
     isDev: DEV,
