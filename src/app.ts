@@ -1,3 +1,4 @@
+// Copyright © 2026 Michael Artner
 import express from 'express';
 import { getAllLayerInfo, LayerInfo, validateLayers } from './config/layer-config';
 import { LOGGER } from './config/log-config';

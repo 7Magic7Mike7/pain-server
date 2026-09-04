@@ -1,3 +1,4 @@
+// Copyright © 2026 Michael Artner
 import { describe, it, expect, beforeAll } from "vitest";
 import { PainDbConfig, UserDbConfig } from "../src/config/db-config";
 import { parsePainOrigin } from "../src/validation/input-validator";

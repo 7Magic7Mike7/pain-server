@@ -1,3 +1,4 @@
+// Copyright © 2026 Michael Artner
 import { Pool } from 'pg';
 
 import { PainDbConfig, PainOrigin, SurveyStepNumber, UserDbConfig } from '../config/db-config';

@@ -1,4 +1,4 @@
-
+// Copyright © 2026 Michael Artner
 import { randomInt } from "crypto";
 import { LOGGER } from "./log-config";
 

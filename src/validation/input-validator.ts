@@ -1,3 +1,4 @@
+// Copyright © 2026 Michael Artner
 import { PainDbConfig } from "../config/db-config";
 import { isExperimentalLayer } from "../config/layer-config";
 import { LOGGER } from "../config/log-config";

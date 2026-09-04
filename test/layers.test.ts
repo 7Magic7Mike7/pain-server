@@ -1,3 +1,4 @@
+// Copyright © 2026 Michael Artner
 import { describe, it, expect } from "vitest";
 import { LayerInfo, LayerValidationError, getAllLayerInfo, validateLayers} from '../src/config/layer-config';
 

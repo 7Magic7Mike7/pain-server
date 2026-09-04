@@ -1,3 +1,4 @@
+// Copyright © 2026 Michael Artner
 import packageJson from '../../package.json';
 
 export class ServerConfig {

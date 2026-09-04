@@ -1,3 +1,4 @@
+// Copyright © 2026 Michael Artner
 // based on: https://gist.github.com/ricardoaandres/bac35d2e30bffe632416689e502f5af8
 
 import { Coordinate } from "../coordinate-computer";

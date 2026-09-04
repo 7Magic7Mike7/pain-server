@@ -1,3 +1,4 @@
+// Copyright © 2026 Michael Artner
 import { countryToCoordinate } from "./config/country-coordinate-config";
 import { PAIN_ORIGINS, PainDbConfig, PainOrigin } from "./config/db-config";
 import { LOGGER } from "./config/log-config";

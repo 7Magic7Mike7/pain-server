@@ -1,3 +1,4 @@
+// Copyright © 2026 Michael Artner
 import pino from "pino";
 import { ServerConfig } from './server-config';
 
