@@ -126,15 +126,15 @@ function computePainValue(origin: string, wordBubbles: string[], wordBody: WordB
     const maxPain = Math.max(...temporality.map((tempo) => SURVEY_TEMPORALITY_TO_MAX_VALUE[tempo]), 
                     SURVEY_TEMPORALITY_DEFAULT_MAX_VALUE);
     const pain = selectedOriginWords.length / originWords.length;
-    logger.info(`computed a pain = ${pain} out of ${maxPain} for ${origin}`);
+    logger.debug(`computed a pain = ${pain} out of ${maxPain} for ${origin}`);
     return {
-      value: Math.round(pain * maxPain * Math.pow(10, DECIMALS)) / Math.pow(10, DECIMALS),
+      value: Math.round(pain * maxPain * Math.pow(10, DECIMALS)) / Math.pow(10, DECIMALS),  // cut off everything after DECIMALS
       words: selectedOriginWords,
       state: (selectedOriginWords.length > 0) ? PainState.VALID : PainState.EMPTY,
     }
   }
   catch(error) {
-    logger.error(`Error while computing pain value for ${origin}: ${JSON.stringify(error)}`);
+    logger.error({ err: error }, `Error while computing pain value for ${origin}.`);
     return {
       value: 0,
       words: selectedOriginWords,
@@ -162,7 +162,7 @@ function extractWordBodyCoordinates(selectedOriginWords: string[], wordBody: Wor
     return coordinates;
   }
   catch (error) {
-    logger.error(`Error on extracting word body coordinates: ${JSON.stringify(error)}`);
+    logger.error({ err: error }, `Error on extracting word body coordinates.`);
     return [];
   }
 }
@@ -188,10 +188,7 @@ function extractCoordinate(dataPoint: PainData): Coordinate {
   else if(dataPoint.lat && dataPoint.lng) {
     return { lat: dataPoint.lat, lng: dataPoint.lng };
   }
-  else {
-    throw new Error(`Invalid dataPoint: Neither country (=${dataPoint.country}) 
-      nor lat & lng (= ${dataPoint.lat}|${dataPoint.lng}) provided!`);
-  }
+  throw new Error(`Invalid dataPoint: Neither country (=${dataPoint.country}) nor lat & lng (= ${dataPoint.lat}|${dataPoint.lng}) provided!`);
 }
 
 /**
@@ -215,34 +212,38 @@ export async function computeCoordinate(wordBubbles: string[], wordBody: WordBod
         painValues.push({ coordinate: wbc, weight: value / wbCoordinates.length });
       }
       // find the datapoint closest to the target pain value and extract its coordinate
-      const dataPoint = await getClosestDataPoint(origin, value);
       try {
-        const coor = extractCoordinate(dataPoint);
-        logger.info(`Found closest datapoint for ${origin} @ ${JSON.stringify(coor)} with weight = ${value}`);
-        painValues.push({ coordinate: coor, weight: value });
+        const dataPoint = await getClosestDataPoint(origin, value);
+        try {
+          const coor = extractCoordinate(dataPoint);
+          logger.debug(`Found closest datapoint for ${origin} at ${JSON.stringify(coor)} with weight=${value}.`);
+          painValues.push({ coordinate: coor, weight: value });
+        }
+        catch (error) {
+          // don't log as error since nothing breaks if this happens, the coordinate computation is just more inaccurate
+          logger.info({ err: error }, `Error extracting the coordinate of a datapoint from ${origin} with id=${dataPoint.id}.`);
+        }
       }
       catch (error) {
-        logger.info(`Error extracting the coordinate of ${origin} datapoint ${dataPoint.id}: ${JSON.stringify(error)}`);
+        // don't log as error since nothing breaks if this happens, the coordinate computation is just more inaccurate
+        logger.info({ err: error }, `Error getting the datapoint closest to value=${value} for ${origin}.`);
       }
     }
   }
   // average the found points
-  let userCoordinate: Coordinate = { lat: 0, lng: 0 };
+  const intermediateCoordinate: Coordinate = { lat: 0, lng: 0 };
   let weightSum = 0.0;
   for (const { coordinate, weight } of painValues) {
-    userCoordinate.lat += weight * coordinate.lat;
-    userCoordinate.lng += weight * coordinate.lng;
+    intermediateCoordinate.lat += weight * coordinate.lat;
+    intermediateCoordinate.lng += weight * coordinate.lng;
     weightSum += weight;
-    logger.debug(`current intermediate coordinate = ${JSON.stringify(userCoordinate)} with weight = ${weightSum}`);
+    logger.debug(`current intermediate coordinate = ${JSON.stringify(intermediateCoordinate)} with weight = ${weightSum}`);
   }
   if (weightSum == 0) {
     weightSum = 1.0;
-    // TODO: this shouldn't happen since we integrate wordBody coordinates and at least one word needs to be picked
-    logger.warn(`Entered case with a 0 weightSum! painValues = ${JSON.stringify(painValues)}`);
+    logger.warn(`Entered case with a weightSum=0! painValues = ${JSON.stringify(painValues)}`);
   }
-  const userLat = userCoordinate.lat / weightSum;
-  const userLng = userCoordinate.lng / weightSum;
-  userCoordinate = { lat: userLat, lng: userLng };
+  const userCoordinate = { lat: intermediateCoordinate.lat / weightSum, lng: intermediateCoordinate.lng / weightSum };
   logger.debug(`Computed userCoordinate = ${JSON.stringify(userCoordinate)}`);
   return userCoordinate;
 }

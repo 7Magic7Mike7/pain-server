@@ -22,7 +22,7 @@ export function parsePainOrigin(painOrigin: string): string | null {
     return null;
   }
   if (ServerConfig.DEV_MODE && isExperimentalLayer(painOrigin)) {
-    logger.info(`Parsing experimental layer = ${painOrigin}`);
+    logger.debug(`Parsing experimental layer = ${painOrigin}`);
     return painOrigin;
   }
   // normalize the input (i.e., trim whitespace and convert to lowercase)

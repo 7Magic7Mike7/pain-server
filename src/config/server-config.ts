@@ -18,6 +18,7 @@ export class ServerConfig {
 }
 
 export class ApiConfig {
+  static readonly INIT: string = "/init";
   static readonly SURVEY: string = "/survey";
   static readonly METRICS_BASE: string = "/metrics";
   static readonly METRICS_TOGGLE: string = `${this.METRICS_BASE}/toggle`;
