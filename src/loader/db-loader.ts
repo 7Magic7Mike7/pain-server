@@ -83,7 +83,7 @@ async function getUserDbId(userId: string): Promise<number | undefined> {
  * @throws Error if painOrigin is invalid or no data point was found
  */
 export async function getClosestDataPoint(painOrigin: PainOrigin, painValue: number): Promise<PainData> {
-  if (!(painOrigin in PAIN_ORIGINS)) {
+  if (!PAIN_ORIGINS.includes(painOrigin)) {
     throw new Error(`Cannot search for closest data point of invalid painOrigin = ${painOrigin}.`);
   }
   logger.debug(`Getting closest data point to ${painValue} from ${painOrigin}`);
