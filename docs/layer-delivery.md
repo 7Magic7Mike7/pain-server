@@ -1,7 +1,7 @@
 # Read-only layer delivery
 
-Last Updated: 2026-09-05
-Version: 1.1
+Last Updated: 2026-09-06
+Version: 1.2
 
 Only `GET /init/:layer` shares successful responses for five minutes. Concurrent misses share
 one database read. Failures are removed immediately; registration, survey and metrics are not
