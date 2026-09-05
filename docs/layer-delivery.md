@@ -1,7 +1,7 @@
 # Read-only layer delivery
 
 Last Updated: 2026-09-05
-Version: 1.0
+Version: 1.1
 
 Only `GET /init/:layer` shares successful responses for five minutes. Concurrent misses share
 one database read. Failures are removed immediately; registration, survey and metrics are not
@@ -39,5 +39,26 @@ Baseline query counts were 50 / 50. All 800 baseline/cached requests returned ma
 bodies. The tests also cover 50 simultaneous misses, expiry, failed-read retry, separate keys and
 independent registration. The registration test previously expected the obsolete array response;
 it now checks the actual userId/layerInfo contract using a test double, without creating users.
+
+Gzip is generated once on demand per cache entry through Node's asynchronous zlib API. The route
+negotiates gzip/identity using Express, sets Vary: Accept-Encoding, and preserves decoded bytes.
+Unsupported encodings produce 406. Compression failures are retryable and do not discard the
+successful identity response. Registration, survey and metrics do not use this code.
+
+Run the same benchmark with `--gzip` to include client decompression and measure wire bytes:
+
+| Layer | Gzip body bytes | Wire reduction | Warm p95 including decompression (ms) |
+|---|---:|---:|---:|
+| Emotional | 2,471 | 86.9% | 7.47 |
+| Environmental | 228,527 | 79.7% | 56.79 |
+| Physical | 410,548 | 77.8% | 87.53 |
+| Socioeconomic | 3,457 | 80.0% | 3.70 |
+
+All 400 compressed requests match baseline decoded bodies. Compression uses more local CPU than
+identity delivery but saves substantial transfer; warm latency still improves over the uncached
+baseline. Peak worker RSS is 86.6 MB. No additional package is required. All 22 tests pass.
+One earlier HTTP test run returned a single 400; it did not recur in a focused repeat, three full
+suite repeats or the real 50-client benchmark. Its cause is unestablished; no application fix is
+claimed for it. Assertions now include the response body if it returns again.
 
 These are local delivery measurements, not public-network or deployment results.

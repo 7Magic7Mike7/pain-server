@@ -1,6 +1,9 @@
 import { getPainLayer } from './db-loader';
+import { gzip } from 'node:zlib';
+import { promisify } from 'node:util';
 
-type LayerResponse = { body: Buffer; count: number };
+type LayerResponse = { body: Buffer; count: number; compressed?: Promise<Buffer> };
+const compress = promisify(gzip);
 const lifetimeMs = 5 * 60_000;
 // Keys come only from the finite validated layer registry in app.ts.
 const responses = new Map<string, { expires: number; pending: Promise<LayerResponse> }>();
@@ -20,4 +23,12 @@ export function getLayerResponse(layer: string): Promise<LayerResponse> {
   const entry = { expires: Infinity, pending };
   responses.set(layer, entry);
   return entry.pending;
+}
+
+/** Compress once per successful cache entry, with a retry if compression itself fails. */
+export function getCompressedLayerResponse(response: LayerResponse): Promise<Buffer> {
+  return response.compressed ??= compress(response.body).catch((error: unknown) => {
+    response.compressed = undefined;
+    throw error;
+  });
 }

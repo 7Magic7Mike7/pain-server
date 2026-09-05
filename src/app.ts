@@ -7,7 +7,7 @@ import { LOGGER } from './config/log-config';
 import { ApiConfig, ServerConfig } from './config/server-config';
 import { registerUser, storeToggleMetric, storeStepMetric, storeVisModeMetric, storeUserCoordinate } from './loader/db-loader';
 import { parsePainOrigin, validateStepMetric, validateSurvey, validateToggleMetric, validateVisMetric } from './validation/input-validator';
-import { getLayerResponse } from './loader/layer-response';
+import { getLayerResponse, getCompressedLayerResponse } from './loader/layer-response';
 import { computeCoordinate, Coordinate } from './coordinate-computer';
 import { validateUserId } from './config/user-config';
 
@@ -154,7 +154,12 @@ app.get(`${ApiConfig.INIT}/:layer`, async (req, res) => {
     try {
       const data = await getLayerResponse(layer);
       logger.debug(`Responding with ${data.count} data points for ${apipath}`);
-      res.set('Content-Type', 'application/json; charset=utf-8').send(data.body);
+      res.vary('Accept-Encoding');
+      const encoding = req.acceptsEncodings('gzip', 'identity');
+      if (!encoding) { res.sendStatus(406); return; }
+      const body = encoding === 'gzip' ? await getCompressedLayerResponse(data) : data.body;
+      if (encoding === 'gzip') res.set('Content-Encoding', 'gzip');
+      res.set('Content-Type', 'application/json; charset=utf-8').send(body);
     }
     catch (error) {
       apierror(apipath, USER_UNINITIALIZED, error);
