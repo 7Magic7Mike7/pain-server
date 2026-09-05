@@ -5,8 +5,9 @@ import helmet from "helmet";
 import { getAllLayerInfo, LayerInfo, validateLayers } from './config/layer-config';
 import { LOGGER } from './config/log-config';
 import { ApiConfig, ServerConfig } from './config/server-config';
-import { getPainLayer, registerUser, storeToggleMetric, storeStepMetric, storeVisModeMetric, storeUserCoordinate } from './loader/db-loader';
+import { registerUser, storeToggleMetric, storeStepMetric, storeVisModeMetric, storeUserCoordinate } from './loader/db-loader';
 import { parsePainOrigin, validateStepMetric, validateSurvey, validateToggleMetric, validateVisMetric } from './validation/input-validator';
+import { getLayerResponse } from './loader/layer-response';
 import { computeCoordinate, Coordinate } from './coordinate-computer';
 import { validateUserId } from './config/user-config';
 
@@ -151,9 +152,9 @@ app.get(`${ApiConfig.INIT}/:layer`, async (req, res) => {
   apiinfo("GET", apipath);
   if (layer in layerInfo) {
     try {
-      const data = await getPainLayer(layer);
-      logger.debug(`Responding with ${data.length} data points for ${apipath}`);
-      return res.json(data);
+      const data = await getLayerResponse(layer);
+      logger.debug(`Responding with ${data.count} data points for ${apipath}`);
+      res.set('Content-Type', 'application/json; charset=utf-8').send(data.body);
     }
     catch (error) {
       apierror(apipath, USER_UNINITIALIZED, error);
