@@ -42,6 +42,23 @@ describe('read-only layer delivery', () => {
     expect(getPainLayer).toHaveBeenCalledTimes(3);
   });
 
+  it('retries a load that remains unresolved beyond the cache lifetime', async () => {
+    let now = 10_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    const stalled = new Promise<never>(() => {});
+    const recovered = [{ id: 4, aggrId: 0, value: 0.5, category: 'temperature' }];
+    vi.mocked(getPainLayer).mockReset().mockReturnValueOnce(stalled).mockResolvedValueOnce(recovered);
+
+    const first = getLayerResponse('stalled-layer');
+    expect(getLayerResponse('stalled-layer')).toBe(first);
+    now += 5 * 60_000 + 1;
+    const retry = getLayerResponse('stalled-layer');
+
+    expect(retry).not.toBe(first);
+    await expect(retry).resolves.toMatchObject({ count: 1 });
+    expect(getPainLayer).toHaveBeenCalledTimes(2);
+  });
+
   it('shares gzip work, negotiates quality values and preserves the decoded body', async () => {
     const rows = [{ id: 3, aggrId: 0, value: 0.25, category: 'socio' }];
     vi.mocked(getPainLayer).mockReset().mockResolvedValue(rows);

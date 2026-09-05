@@ -8,6 +8,11 @@ one database read. Failures are removed immediately; registration, survey and me
 cached. The finite validated layer registry bounds the cache. Refresh occurs on the first request
 after expiry. Live database edits may therefore take up to five minutes to appear.
 
+An unresolved database read is shared for at most the same five-minute window. A later request
+then starts a new read instead of remaining attached to the stalled promise forever. If the old
+read eventually settles, it completes only its original callers and cannot replace the newer
+entry. Failed reads are still removed immediately.
+
 The cached value is the existing JSON response encoded once as UTF-8. A shared Buffer avoids
 allocating a separate encoded body for each client. The first string-only trial improved latency
 but raised peak RSS to 190 MB under concurrent physical-layer delivery; the Buffer trial uses
@@ -37,7 +42,8 @@ On the existing Docker Node 20 runtime and database, warm p95 milliseconds:
 
 Baseline query counts were 50 / 50. All 800 baseline/cached requests returned matching successful
 bodies. The tests also cover 50 simultaneous misses, expiry, failed-read retry, separate keys and
-independent registration. The registration test previously expected the obsolete array response;
+independent registration, and retry after an unresolved read outlives its coalescing lease. The
+registration test previously expected the obsolete array response;
 it now checks the actual userId/layerInfo contract using a test double, without creating users.
 
 Gzip is generated once on demand per cache entry through Node's asynchronous zlib API. The route

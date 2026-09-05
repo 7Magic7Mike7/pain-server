@@ -20,7 +20,9 @@ export function getLayerResponse(layer: string): Promise<LayerResponse> {
     if (responses.get(layer) === entry) responses.delete(layer);
     throw error;
   });
-  const entry = { expires: Infinity, pending };
+  // A read that never settles must not poison this layer forever. The same five-minute window
+  // bounds both successful response reuse and an in-flight miss's coalescing lease.
+  const entry = { expires: Date.now() + lifetimeMs, pending };
   responses.set(layer, entry);
   return entry.pending;
 }
