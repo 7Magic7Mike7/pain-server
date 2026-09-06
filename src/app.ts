@@ -16,7 +16,7 @@ import { validateUserId } from './config/user-config';
 export const app = express();
 app.use(express.json({ limit: "100kb" }));  // 100 kb is the default
 
-app.set("trust proxy", process.env.TRUST_PROXY === "true");
+app.set("trust proxy", 1);
 
 // general limit (including high-frequency metrics)
 const generalLimiter = rateLimit({
