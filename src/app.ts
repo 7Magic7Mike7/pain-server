@@ -7,6 +7,7 @@ import { getPainLayer, registerUser, storeToggleMetric, storeStepMetric, storeVi
 import { parsePainOrigin } from './validation/input-validator';
 import { computeCoordinate, Coordinate } from './coordinate-computer';
 import { generateText } from './text-generation';
+import { validateUserId } from './config/user-config';
 
 
 // ######################################################################################
@@ -144,6 +145,11 @@ app.get(`${ApiConfig.INIT}/:layer`, async (req, res) => {
 app.post(ApiConfig.SURVEY, async (req, res) => {
   apiinfo("POST", ApiConfig.SURVEY);
   const { userId, consent, wordBubbles, wordBody, temporality, relations, painDescription } = req.body;
+  if (!validateUserId(userId)) {
+    const msg = `Received invalid userId=\"${userId}\"!`;
+    logger.apierror(`For ${ApiConfig.METRICS_VIZMODE}: ${msg}`);
+    res.status(400).json({ message: msg, lat: 0, lng: 0 }); // send dummy coordinate as fallback if client handles the response incorrectly
+  }
 
   // try to compute a coordinate from the user input
   let coordinate: Coordinate | undefined;
@@ -198,6 +204,11 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
 app.post(ApiConfig.METRICS_TOGGLE, async (req, res) => {
   apiinfo("POST", ApiConfig.METRICS_TOGGLE);
   const { userId, kind, element, enabled } = req.body;
+  if (!validateUserId(userId)) {
+    const msg = `Received invalid userId=\"${userId}\"!`;
+    logger.apierror(`For ${ApiConfig.METRICS_TOGGLE}: ${msg}`);
+    res.status(400).json({ message: msg });
+  }
 
   try {
     if (await storeToggleMetric(userId, kind, element, enabled)) {
@@ -217,9 +228,14 @@ app.post(ApiConfig.METRICS_TOGGLE, async (req, res) => {
 app.post(ApiConfig.METRICS_STEP, async (req, res) => {
   apiinfo("POST", ApiConfig.METRICS_STEP);
   const { userId, step } = req.body;
+  if (!validateUserId(userId)) {
+    const msg = `Received invalid userId=\"${userId}\"!`;
+    logger.apierror(`For ${ApiConfig.METRICS_STEP}: ${msg}`);
+    res.status(400).json({ message: msg });
+  }
 
   try {
-    if (await storeStepMetric(userId,step)) {
+    if (await storeStepMetric(userId, step)) {
       res.status(200).send();
     }
     else {
@@ -236,6 +252,11 @@ app.post(ApiConfig.METRICS_STEP, async (req, res) => {
 app.post(ApiConfig.METRICS_VIZMODE, async (req, res) => {
   apiinfo("POST", ApiConfig.METRICS_VIZMODE);
   const { userId, mode } = req.body;
+  if (!validateUserId(userId)) {
+    const msg = `Received invalid userId=\"${userId}\"!`;
+    logger.apierror(`For ${ApiConfig.METRICS_VIZMODE}: ${msg}`);
+    res.status(400).json({ message: msg });
+  }
 
   try {
     if (!await storeVisModeMetric(userId, mode)) {

@@ -4,6 +4,7 @@ import { PainDbConfig, UserDbConfig } from "../src/config/db-config";
 import { parsePainOrigin } from "../src/validation/input-validator";
 import { storeUserCoordinate } from "../src/loader/db-loader";
 import { fail } from "node:assert";
+import { generateUserId, validateUserId } from "../src/config/user-config";
 
 describe("pain origin", () => {
   describe("valid", () => {
@@ -65,3 +66,42 @@ describe("database calls", () => {
     });
   });
 });
+
+describe("userId validation", () => {
+  const USER_ID_LENGTH = 16;
+  describe("valid", () => {
+    it("validate generated ids", () => {
+      for (let index = 0; index < 10_000; index++) {
+        const userId = generateUserId();
+        expect(validateUserId(userId)).toBeTruthy();
+      }
+    });
+  });
+  describe("invalid", () => {
+    it("id too short", () => {
+      let userId = "";
+      for (let i = 0; i < USER_ID_LENGTH-1; i++) {
+        userId += "a";
+      }
+      expect(validateUserId(userId)).toBeFalsy();
+    });
+    it("id too long", () => {
+      let userId = "";
+      for (let i = 0; i < USER_ID_LENGTH+1; i++) {
+        userId += "a";
+      }
+      expect(validateUserId(userId)).toBeFalsy();
+    });
+    it("id containing illegal characters", () => {
+      let userId = "";
+      for (let i = 0; i < USER_ID_LENGTH-1; i++) {
+        userId += "a";
+      }
+      const testCharacters = "_;-+%&/\\,.!\"\'\´()[]{}";
+      for (let i = 0; i < testCharacters.length; i++) {
+        const char = testCharacters[i];
+        expect(validateUserId(userId + char)).toBeFalsy();
+      }
+    });
+  });
+})
