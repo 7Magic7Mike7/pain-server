@@ -1,5 +1,6 @@
 // Copyright © 2026 Michael Artner
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { getAllLayerInfo, LayerInfo, validateLayers } from './config/layer-config';
 import { LOGGER } from './config/log-config';
 import { ApiConfig, ServerConfig } from './config/server-config';
@@ -13,6 +14,30 @@ import { validateUserId } from './config/user-config';
 // ######################################################################################
 export const app = express();
 app.use(express.json());  // request size limit is 100 kb by default
+
+app.set("trust proxy", process.env.TRUST_PROXY === "true");
+
+// general limit (including high-frequency metrics)
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 1000,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+});
+app.use(generalLimiter);
+
+// limiter for computation heavier and non-regular APIs
+const sensitiveLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { message: "Too many requests. Try again later." },
+});
+app.use([ApiConfig.SURVEY, ApiConfig.INIT], sensitiveLimiter);
+
+
+// ######################################################################################
 
 const USER_UNINITIALIZED = "uninitialized";
 
