@@ -23,16 +23,6 @@ export type PainData = {
     word?: string;
 }
 
-// Parameterized query (prevents SQL injection)
-export async function getRowById(id: number, painOrigin: string) {
-  const table = parsePainOrigin(painOrigin);
-  if (table === null) {
-    throw new Error("Layer must not be null!");
-  }
-  const result = await pool.query(`SELECT * FROM $1 WHERE ${PainDbConfig.COL_ID} = $2`, [table, id]);
-  return result.rows[0];
-}
-
 /**
  * 
  * @param layer the layer to retrieve data from
