@@ -22,7 +22,11 @@ export function generateUserId(): string {
   return userId;
 }
 
-export function validateUserId(userId: string): boolean {
+export function validateUserId(userId: any): boolean {
+  // check type
+  if (typeof userId !== "string") {
+    return false;
+  }
   // check for correct length
   if (userId.length != USER_ID_LENGTH) {
     return false;

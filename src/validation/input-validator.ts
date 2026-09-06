@@ -169,41 +169,42 @@ export function validateVisMetric(mode: any): { isValid: boolean, info: string} 
 }
 
 const MAX_LEN_SURVEY_WORD = 40;
+const MAX_LEN_SURVEY_ARRAYS = 100;
 export function validateSurvey(consent: any, wordBubbles: any, wordBody: any, temporality: any, relations: any, painDescription: any): { isValid: boolean, info: string} {
   // validate types
   if (typeof consent !== "boolean") {
     return { isValid: false, info: `Invalid type of consent = ${typeof consent}` };
   }
-  if (wordBubbles) {
-    if (!Array.isArray(wordBubbles)) {
-      return { isValid: false, info: `wordBubbles is not an array` };
-    }
-    if (wordBubbles.length > 0 && typeof wordBubbles[0] !== "string") {
-      return { isValid: false, info: `Invalid type of wordBubbles[0] = ${typeof wordBubbles[0]}` };
+  if (!Array.isArray(wordBubbles)) {
+    return { isValid: false, info: `wordBubbles is not an array` };
+  }
+  for (const word of wordBubbles) {
+    if (typeof word !== "string") {
+      return { isValid: false, info: `Invalid type of wordBubbles element = ${typeof word}` };
     }
   }
-  if (wordBody) {
-    if (!Array.isArray(wordBody)) {
-      return { isValid: false, info: `wordBody is not an array` };
-    }
-    if (wordBody.length > 0 && typeof wordBody[0] !== "object") {
-      return { isValid: false, info: `Invalid type of wordBody[0] = ${typeof wordBody[0]}` };
+  if (!Array.isArray(wordBody)) {
+    return { isValid: false, info: `wordBody is not an array` };
+  }
+  for (const item of wordBody) {
+    if (typeof item !== "object") {
+      return { isValid: false, info: `Invalid type of wordBody element = ${typeof item}` };
     }
   }
-  if (temporality) {
-    if (!Array.isArray(temporality)) {
-      return { isValid: false, info: `temporality is not an array` };
-    }
-    if (temporality.length > 0 && typeof temporality[0] !== "string") {
-      return { isValid: false, info: `Invalid type of temporality[0] = ${typeof temporality[0]}` };
+  if (!Array.isArray(temporality)) {
+    return { isValid: false, info: `temporality is not an array` };
+  }
+  for (const item of temporality) {
+    if (typeof item !== "string") {
+      return { isValid: false, info: `Invalid type of temporality element = ${typeof item}` };
     }
   }
-  if (relations) {
-    if (!Array.isArray(relations)) {
-      return { isValid: false, info: `relations is not an array` };
-    }
-    if (relations.length > 0 && typeof relations[0] !== "string") {
-      return { isValid: false, info: `Invalid type of relations[0] = ${typeof relations[0]}` };
+  if (!Array.isArray(relations)) {
+    return { isValid: false, info: `relations is not an array` };
+  }
+  for (const item of relations) {
+    if (typeof item !== "string") {
+      return { isValid: false, info: `Invalid type of relations element = ${typeof item}` };
     }
   }
   if (painDescription) {
@@ -212,6 +213,9 @@ export function validateSurvey(consent: any, wordBubbles: any, wordBody: any, te
     }
   }
   // validate wordBubbles
+  if (wordBubbles.length > MAX_LEN_SURVEY_ARRAYS) {
+      return { isValid: false, info: `wordBubbles has more than ${MAX_LEN_SURVEY_ARRAYS} elements` };
+  }
   for (const word of wordBubbles) {
     if (word.length > MAX_LEN_SURVEY_WORD) {
       return { isValid: false, info: `wordBubbles element is longer than ${MAX_LEN_SURVEY_WORD} characters` };
@@ -221,6 +225,9 @@ export function validateSurvey(consent: any, wordBubbles: any, wordBody: any, te
     }
   }
   // validate wordBody
+  if (wordBody.length > MAX_LEN_SURVEY_ARRAYS) {
+      return { isValid: false, info: `wordBody has more than ${MAX_LEN_SURVEY_ARRAYS} elements` };
+  }
   try {
     for (const wb of wordBody) {
       // word
@@ -237,14 +244,14 @@ export function validateSurvey(consent: any, wordBubbles: any, wordBody: any, te
       if (typeof wb.lat !== "number") {
         return { isValid: false, info: `Invalid type of wordBody element.lat = ${typeof wb.lat}` };
       }
-      if (wb.lat < UserDbConfig.VAL_LAT_MIN || UserDbConfig.VAL_LAT_MAX < wb.lat) {
+      if (!Number.isFinite(wb.lat) || wb.lat < UserDbConfig.VAL_LAT_MIN || UserDbConfig.VAL_LAT_MAX < wb.lat) {
         return { isValid: false, info: `Value of wordBody element.lat out of range = ${wb.lat}` };
       }
       // lng
       if (typeof wb.lng !== "number") {
         return { isValid: false, info: `Invalid type of wordBody element.lng = ${typeof wb.lng}` };
       }
-      if (wb.lng < UserDbConfig.VAL_LNG_MIN || UserDbConfig.VAL_LNG_MAX < wb.lng) {
+      if (!Number.isFinite(wb.lng) || wb.lng < UserDbConfig.VAL_LNG_MIN || UserDbConfig.VAL_LNG_MAX < wb.lng) {
         return { isValid: false, info: `Value of wordBody element.lng out of range = ${wb.lng}` };
       }
     }
@@ -253,8 +260,10 @@ export function validateSurvey(consent: any, wordBubbles: any, wordBody: any, te
     logger.warn({ err }, "Failed to validate wordBody.");
     return { isValid: false, info: `Error while validating wordBody` };
   }
-
   // validate temporality
+  if (temporality.length > MAX_LEN_SURVEY_ARRAYS) {
+      return { isValid: false, info: `temporality has more than ${MAX_LEN_SURVEY_ARRAYS} elements` };
+  }
   for (const word of temporality) {
     if (word.length > MAX_LEN_SURVEY_WORD) {
       return { isValid: false, info: `temporality element is longer than ${MAX_LEN_SURVEY_WORD} characters` };
@@ -264,6 +273,9 @@ export function validateSurvey(consent: any, wordBubbles: any, wordBody: any, te
     }
   }
   // validate relations
+  if (relations.length > MAX_LEN_SURVEY_ARRAYS) {
+      return { isValid: false, info: `relations has more than ${MAX_LEN_SURVEY_ARRAYS} elements` };
+  }
   for (const word of relations) {
     if (word.length > MAX_LEN_SURVEY_WORD) {
       return { isValid: false, info: `relations element is longer than ${MAX_LEN_SURVEY_WORD} characters` };
