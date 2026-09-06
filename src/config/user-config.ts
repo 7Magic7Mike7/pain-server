@@ -1,6 +1,7 @@
 // Copyright © 2026 Michael Artner
 import { randomInt } from "crypto";
 import { LOGGER } from "./log-config";
+import { isValidString } from "../validation/input-validator";
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 const USER_ID_LENGTH = 16;
@@ -27,25 +28,8 @@ export function validateUserId(userId: string): boolean {
     return false;
   }
   // check for any non-supported characters
-  if (!isAlphaNumeric(userId)) {
+  if (!isValidString(userId)) {
     return false;
   }
   return true;
 }
-
-// Source - https://stackoverflow.com/a/25352300
-// Posted by Michael Martin-Smucker
-// Retrieved 2026-09-06, License - CC BY-SA 3.0
-
-function isAlphaNumeric(userId: string) {
-  let code, i, len;
-  for (i = 0, len = userId.length; i < len; i++) {
-    code = userId.charCodeAt(i);
-    if (!(code > 47 && code < 58) && // numeric (0-9)
-        !(code > 64 && code < 91) && // upper alpha (A-Z)
-        !(code > 96 && code < 123)) { // lower alpha (a-z)
-      return false;
-    }
-  }
-  return true;
-};

@@ -1,7 +1,7 @@
 // Copyright © 2026 Michael Artner
 import { describe, it, expect, beforeAll } from "vitest";
 import { PainDbConfig, UserDbConfig } from "../src/config/db-config";
-import { parsePainOrigin } from "../src/validation/input-validator";
+import { isValidString, parsePainOrigin } from "../src/validation/input-validator";
 import { storeUserCoordinate } from "../src/loader/db-loader";
 import { fail } from "node:assert";
 import { generateUserId, validateUserId } from "../src/config/user-config";
@@ -67,6 +67,52 @@ describe("database calls", () => {
   });
 });
 
+describe("isValidString", () => {
+  describe("valid", () => {
+    it("allow all", () => {
+      const text = "aA9 -";
+      expect(isValidString(text, true, true, true, true, true)).toBeTruthy();
+    });
+  });
+  describe("invalid", () => {
+    it("allowLower", () => {
+      expect(isValidString("a", true, false, false, false, false)).toBeTruthy();
+      expect(isValidString("A", true, false, false, false, false)).toBeFalsy();
+      expect(isValidString("9", true, false, false, false, false)).toBeFalsy();
+      expect(isValidString("-", true, false, false, false, false)).toBeFalsy();
+      expect(isValidString(" ", true, false, false, false, false)).toBeFalsy();
+    });
+    it("allowUpper", () => {
+      expect(isValidString("a", false, true, false, false, false)).toBeFalsy();
+      expect(isValidString("A", false, true, false, false, false)).toBeTruthy();
+      expect(isValidString("9", false, true, false, false, false)).toBeFalsy();
+      expect(isValidString("-", false, true, false, false, false)).toBeFalsy();
+      expect(isValidString(" ", false, true, false, false, false)).toBeFalsy();
+    });
+    it("allowNumber", () => {
+      expect(isValidString("a", false, false, true, false, false)).toBeFalsy();
+      expect(isValidString("A", false, false, true, false, false)).toBeFalsy();
+      expect(isValidString("9", false, false, true, false, false)).toBeTruthy();
+      expect(isValidString("-", false, false, true, false, false)).toBeFalsy();
+      expect(isValidString(" ", false, false, true, false, false)).toBeFalsy();
+    });
+    it("allowDash", () => {
+      expect(isValidString("a", false, false, false, true, false)).toBeFalsy();
+      expect(isValidString("A", false, false, false, true, false)).toBeFalsy();
+      expect(isValidString("9", false, false, false, true, false)).toBeFalsy();
+      expect(isValidString("-", false, false, false, true, false)).toBeTruthy();
+      expect(isValidString(" ", false, false, false, true, false)).toBeFalsy();
+    });
+    it("allowWhitespace", () => {
+      expect(isValidString("a", false, false, false, false, true)).toBeFalsy();
+      expect(isValidString("A", false, false, false, false, true)).toBeFalsy();
+      expect(isValidString("9", false, false, false, false, true)).toBeFalsy();
+      expect(isValidString("-", false, false, false, false, true)).toBeFalsy();
+      expect(isValidString(" ", false, false, false, false, true)).toBeTruthy();
+    });
+  });
+});
+
 describe("userId validation", () => {
   const USER_ID_LENGTH = 16;
   describe("valid", () => {
@@ -97,11 +143,11 @@ describe("userId validation", () => {
       for (let i = 0; i < USER_ID_LENGTH-1; i++) {
         userId += "a";
       }
-      const testCharacters = "_;-+%&/\\,.!\"\'\´()[]{}";
+      const testCharacters = "_;-+%&/\\,.!\"\'\´()[]{} ";
       for (let i = 0; i < testCharacters.length; i++) {
         const char = testCharacters[i];
         expect(validateUserId(userId + char)).toBeFalsy();
       }
     });
   });
-})
+});

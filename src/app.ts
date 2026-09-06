@@ -4,7 +4,7 @@ import { getAllLayerInfo, LayerInfo, validateLayers } from './config/layer-confi
 import { LOGGER } from './config/log-config';
 import { ApiConfig, ServerConfig } from './config/server-config';
 import { getPainLayer, registerUser, storeToggleMetric, storeStepMetric, storeVisModeMetric, storeUserCoordinate } from './loader/db-loader';
-import { parsePainOrigin } from './validation/input-validator';
+import { parsePainOrigin, validateStepMetric, validateSurvey, validateToggleMetric, validateVisMetric } from './validation/input-validator';
 import { computeCoordinate, Coordinate } from './coordinate-computer';
 import { generateText } from './text-generation';
 import { validateUserId } from './config/user-config';
@@ -145,10 +145,18 @@ app.get(`${ApiConfig.INIT}/:layer`, async (req, res) => {
 app.post(ApiConfig.SURVEY, async (req, res) => {
   apiinfo("POST", ApiConfig.SURVEY);
   const { userId, consent, wordBubbles, wordBody, temporality, relations, painDescription } = req.body;
+
+  // validate user input
   if (!validateUserId(userId)) {
     const msg = `Received invalid userId=\"${userId}\"!`;
     logger.apierror(`For ${ApiConfig.METRICS_VIZMODE}: ${msg}`);
     res.status(400).json({ message: msg, lat: 0, lng: 0 }); // send dummy coordinate as fallback if client handles the response incorrectly
+  }
+  const valRes = validateSurvey(consent, wordBubbles, wordBody, temporality, relations, painDescription);
+  if (!valRes.isValid) {
+    const msg = `Received invalid toggle metric input!`;
+    logger.apierror(`For ${ApiConfig.METRICS_TOGGLE}: ${msg} Reason = ${valRes.info}`);
+    res.status(400).json({ message: msg });
   }
 
   // try to compute a coordinate from the user input
@@ -204,9 +212,17 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
 app.post(ApiConfig.METRICS_TOGGLE, async (req, res) => {
   apiinfo("POST", ApiConfig.METRICS_TOGGLE);
   const { userId, kind, element, enabled } = req.body;
+
+  // validate user input
   if (!validateUserId(userId)) {
     const msg = `Received invalid userId=\"${userId}\"!`;
     logger.apierror(`For ${ApiConfig.METRICS_TOGGLE}: ${msg}`);
+    res.status(400).json({ message: msg });
+  }
+  const valRes = validateToggleMetric(kind, element, enabled);
+  if (!valRes.isValid) {
+    const msg = `Received invalid toggle metric input!`;
+    logger.apierror(`For ${ApiConfig.METRICS_TOGGLE}: ${msg} Reason = ${valRes.info}`);
     res.status(400).json({ message: msg });
   }
 
@@ -228,9 +244,17 @@ app.post(ApiConfig.METRICS_TOGGLE, async (req, res) => {
 app.post(ApiConfig.METRICS_STEP, async (req, res) => {
   apiinfo("POST", ApiConfig.METRICS_STEP);
   const { userId, step } = req.body;
+
+  // validate user input
   if (!validateUserId(userId)) {
     const msg = `Received invalid userId=\"${userId}\"!`;
     logger.apierror(`For ${ApiConfig.METRICS_STEP}: ${msg}`);
+    res.status(400).json({ message: msg });
+  }
+  const valRes = validateStepMetric(step);
+  if (!valRes.isValid) {
+    const msg = `Received invalid step metric input!`;
+    logger.apierror(`For ${ApiConfig.METRICS_STEP}: ${msg} Reason = ${valRes.info}`);
     res.status(400).json({ message: msg });
   }
 
@@ -252,9 +276,17 @@ app.post(ApiConfig.METRICS_STEP, async (req, res) => {
 app.post(ApiConfig.METRICS_VIZMODE, async (req, res) => {
   apiinfo("POST", ApiConfig.METRICS_VIZMODE);
   const { userId, mode } = req.body;
+
+  // validate user input
   if (!validateUserId(userId)) {
     const msg = `Received invalid userId=\"${userId}\"!`;
     logger.apierror(`For ${ApiConfig.METRICS_VIZMODE}: ${msg}`);
+    res.status(400).json({ message: msg });
+  }
+  const valRes = validateVisMetric(mode);
+  if (!valRes.isValid) {
+    const msg = `Received invalid vis metric input!`;
+    logger.apierror(`For ${ApiConfig.METRICS_VIZMODE}: ${msg} Reason = ${valRes.info}`);
     res.status(400).json({ message: msg });
   }
 
