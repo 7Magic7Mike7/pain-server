@@ -16,6 +16,7 @@ export const LOGGER = pino({
   base: {
     isDev: DEV,
     version: ServerConfig.VERSION,
+    vFrontend: ServerConfig.FRONTEND_VERSION,
   },
   formatters: DEV? {
     level(label) {

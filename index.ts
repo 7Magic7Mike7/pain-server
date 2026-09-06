@@ -12,4 +12,5 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.listen(ServerConfig.PORT, () => {
   LOGGER.info(`Server running at http://localhost:${ServerConfig.PORT}/`);
+  LOGGER.info(`Ready to serve frontend version ${ServerConfig.FRONTEND_VERSION}`);
 });
