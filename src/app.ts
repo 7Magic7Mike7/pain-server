@@ -198,7 +198,7 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
   }
   else {
     const errMsg = `Either no coordinate or text was computed! coordinate=${coordinate}, text="${text}"`;
-    logger.error(`Failed to either compute a coordinate or text for userId=\"${userId}\"!
+    logger.apierror(`Failed to either compute a coordinate or text for userId=\"${userId}\"!
       coordinate=${coordinate}, text="${text}", req.body = ${JSON.stringify(req.body)}`);
     res.status(500).json({ message: errMsg, error: new Error("Invalid coordinate or text computation!")});
   }

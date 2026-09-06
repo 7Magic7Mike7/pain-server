@@ -168,7 +168,7 @@ export async function storeToggleMetric(userId: string, kind: string, element: s
     [dbId, kind, element, enabled]
   );
   if (result.rowCount) {
-    logger.database(`Successfully stored toggle metric for userId=\"${userId}\".`);
+    logger.debug(`Successfully stored toggle metric for userId=\"${userId}\".`);
     return true;
   }
   return false;
@@ -194,7 +194,7 @@ export async function storeStepMetric(userId: string, step: SurveyStepNumber): P
     [dbId, step]
   );
   if (result.rowCount) {
-    logger.database(`Successfully stored step metric for userId=\"${userId}\".`);
+    logger.debug(`Successfully stored step metric for userId=\"${userId}\".`);
     return true;
   }
   return false;
@@ -220,7 +220,7 @@ export async function storeVisModeMetric(userId: string, mode: string): Promise<
     [dbId, mode]
   );
   if (result.rowCount) {
-    logger.database(`Successfully stored vis mode metric for userId=\"${userId}\".`);
+    logger.debug(`Successfully stored vis mode metric for userId=\"${userId}\".`);
     return true;
   }
   return false;
@@ -255,7 +255,7 @@ export async function storeUserCoordinate(userId: string, coordinate: Coordinate
     [dbId, coordinate.lat, coordinate.lng]
   );
   if (result.rowCount) {
-    logger.database(`Successfully stored user coordinate for userId=\"${userId}\".`);
+    logger.debug(`Successfully stored user coordinate for userId=\"${userId}\".`);
     return true;
   }
   return false;
