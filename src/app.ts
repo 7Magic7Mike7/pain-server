@@ -110,7 +110,7 @@ app.get(ApiConfig.INIT, async (req, res) => {
   }
   catch (error) {
     apierror(ApiConfig.INIT, USER_UNINITIALIZED, error);
-    return res.status(500).json({ message: "Error while registering user.", error });
+    return res.status(500).json({ message: "Error while registering user.", error: new Error("Error on init") });
   }
 });
 
@@ -127,7 +127,7 @@ app.get(`${ApiConfig.INIT}/:layer`, async (req, res) => {
     }
     catch (error) {
       apierror(apipath, USER_UNINITIALIZED, error);
-      return res.status(500).json({ message: `Failed to fetch data from layer=\"${layer}\"`, error });
+      return res.status(500).json({ message: `Failed to fetch data from layer=\"${layer}\"`, error: new Error("Invalid layer!") });
     }
   }
   else {
@@ -166,7 +166,7 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
   }
   catch (error) {
     logger.error({ err: error }, `Error during computeCoordinate() for userId=\"${userId}\"`, `req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: "Failed to compute coordinate from survey.", error });
+    return res.status(500).json({ message: "Failed to compute coordinate from survey.", error: new Error("Error during coordiante computation.") });
   }
 
   // try to generate text from the user input
@@ -176,7 +176,7 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
   }
   catch (error) {
     logger.error({ err: error }, `Error during generateText() for userId=${userId}`, `req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: "Failed to generate text from survey.", error });
+    return res.status(500).json({ message: "Failed to generate text from survey.", error: new Error("Error during text generation") });
   }
 
   if (coordinate && text) {
@@ -235,7 +235,7 @@ app.post(ApiConfig.METRICS_TOGGLE, async (req, res) => {
   }
   catch (error) {
     apierror(ApiConfig.METRICS_TOGGLE, userId, error, `req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: "Failed to store toggle metric.", error });
+    return res.status(500).json({ message: "Failed to store toggle metric.", error: new Error("Error for toggle metric") });
   }
 });
 
@@ -267,7 +267,7 @@ app.post(ApiConfig.METRICS_STEP, async (req, res) => {
   }
   catch (error) {
     apierror(ApiConfig.METRICS_STEP, userId, error, `req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: "Failed to store step metric.", error });
+    return res.status(500).json({ message: "Failed to store step metric.", error: new Error("Error for step metric") });
   }
 });
 
@@ -299,6 +299,6 @@ app.post(ApiConfig.METRICS_VIZMODE, async (req, res) => {
   }
   catch (error) {
     apierror(ApiConfig.METRICS_VIZMODE, userId, error, `req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: "Failed to store viz mode metric.", error });
+    return res.status(500).json({ message: "Failed to store viz mode metric.", error: new Error("Error for viz mode metric") });
   }
 });
