@@ -12,7 +12,7 @@ import { validateUserId } from './config/user-config';
 
 // ######################################################################################
 export const app = express();
-app.use(express.json());
+app.use(express.json());  // request size limit is 100 kb by default
 
 const USER_UNINITIALIZED = "uninitialized";
 
@@ -85,7 +85,7 @@ const layerInfo: Record<string, LayerInfo> = initLayers();
  */
 app.get('/random', (req, res) => {
   const apipath = `/random`;
-  res.status(410).json({ message: `Outdated API called: \"${apipath}\" no longer exists!` });
+  return res.status(410).json({ message: `Outdated API called: \"${apipath}\" no longer exists!` });
 });
 
 /**
@@ -94,7 +94,7 @@ app.get('/random', (req, res) => {
 app.get('/db/:id', async (req, res) => {
   const { id } = req.params;
   const apipath = `/db/${id}`;
-  res.status(410).json({ message: `Outdated API called: \"${apipath}\" no longer exists!` });
+  return res.status(410).json({ message: `Outdated API called: \"${apipath}\" no longer exists!` });
 });
 
 // ######################################################################################
@@ -106,11 +106,11 @@ app.get(ApiConfig.INIT, async (req, res) => {
   apiinfo("GET", ApiConfig.INIT);
   try {
     const userId = await registerUser();
-    res.json({ userId, layerInfo: Object.values(layerInfo) });
+    return res.json({ userId, layerInfo: Object.values(layerInfo) });
   }
   catch (error) {
     apierror(ApiConfig.INIT, USER_UNINITIALIZED, error);
-    res.status(500).json({ message: "Error while registering user.", error });
+    return res.status(500).json({ message: "Error while registering user.", error });
   }
 });
 
@@ -123,17 +123,17 @@ app.get(`${ApiConfig.INIT}/:layer`, async (req, res) => {
     try {
       const data = await getPainLayer(layer);
       logger.debug(`Responding with ${data.length} data points for ${apipath}`);
-      res.json(data);
+      return res.json(data);
     }
     catch (error) {
       apierror(apipath, USER_UNINITIALIZED, error);
-      res.status(500).json({ message: `Failed to fetch data from layer=\"${layer}\"`, error });
+      return res.status(500).json({ message: `Failed to fetch data from layer=\"${layer}\"`, error });
     }
   }
   else {
     const errmsg = `${layer} is not among the known layers!`;
     apierror(apipath, USER_UNINITIALIZED, new Error(errmsg));
-    res.status(500).json({ message: errmsg, error: new Error("Invalid layer!")});
+    return res.status(500).json({ message: errmsg, error: new Error("Invalid layer!")});
   }
 });
 
@@ -150,13 +150,13 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
   if (!validateUserId(userId)) {
     const msg = `Received invalid userId=\"${userId}\"!`;
     logger.apierror(`For ${ApiConfig.METRICS_VIZMODE}: ${msg}`);
-    res.status(400).json({ message: msg, lat: 0, lng: 0 }); // send dummy coordinate as fallback if client handles the response incorrectly
+    return res.status(400).json({ message: msg, lat: 0, lng: 0 }); // send dummy coordinate as fallback if client handles the response incorrectly
   }
   const valRes = validateSurvey(consent, wordBubbles, wordBody, temporality, relations, painDescription);
   if (!valRes.isValid) {
     const msg = `Received invalid toggle metric input!`;
     logger.apierror(`For ${ApiConfig.METRICS_TOGGLE}: ${msg} Reason = ${valRes.info}`);
-    res.status(400).json({ message: msg });
+    return res.status(400).json({ message: msg });
   }
 
   // try to compute a coordinate from the user input
@@ -166,8 +166,7 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
   }
   catch (error) {
     logger.error({ err: error }, `Error during computeCoordinate() for userId=\"${userId}\"`, `req.body = ${JSON.stringify(req.body)}`);
-    res.status(500).json({ message: "Failed to compute coordinate from survey.", error });
-    return;
+    return res.status(500).json({ message: "Failed to compute coordinate from survey.", error });
   }
 
   // try to generate text from the user input
@@ -177,8 +176,7 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
   }
   catch (error) {
     logger.error({ err: error }, `Error during generateText() for userId=${userId}`, `req.body = ${JSON.stringify(req.body)}`);
-    res.status(500).json({ message: "Failed to generate text from survey.", error });
-    return;
+    return res.status(500).json({ message: "Failed to generate text from survey.", error });
   }
 
   if (coordinate && text) {
@@ -194,13 +192,13 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
       apierror(ApiConfig.SURVEY, userId, error);
     }
     // we still send 200 so the user can receive their coordiante & text
-    res.status(200).json({ lat: coordinate.lat, lng: coordinate.lng, text });
+    return res.status(200).json({ lat: coordinate.lat, lng: coordinate.lng, text });
   }
   else {
     const errMsg = `Either no coordinate or text was computed! coordinate=${coordinate}, text="${text}"`;
     logger.apierror(`Failed to either compute a coordinate or text for userId=\"${userId}\"!
       coordinate=${coordinate}, text="${text}", req.body = ${JSON.stringify(req.body)}`);
-    res.status(500).json({ message: errMsg, error: new Error("Invalid coordinate or text computation!")});
+    return res.status(500).json({ message: errMsg, error: new Error("Invalid coordinate or text computation!")});
   }
 });
 
@@ -217,27 +215,27 @@ app.post(ApiConfig.METRICS_TOGGLE, async (req, res) => {
   if (!validateUserId(userId)) {
     const msg = `Received invalid userId=\"${userId}\"!`;
     logger.apierror(`For ${ApiConfig.METRICS_TOGGLE}: ${msg}`);
-    res.status(400).json({ message: msg });
+    return res.status(400).json({ message: msg });
   }
   const valRes = validateToggleMetric(kind, element, enabled);
   if (!valRes.isValid) {
     const msg = `Received invalid toggle metric input!`;
     logger.apierror(`For ${ApiConfig.METRICS_TOGGLE}: ${msg} Reason = ${valRes.info}`);
-    res.status(400).json({ message: msg });
+    return res.status(400).json({ message: msg });
   }
 
   try {
     if (await storeToggleMetric(userId, kind, element, enabled)) {
-      res.status(200).send();
+      return res.status(200).send();
     }
     else {
       logger.apierror(`Failed to store step metric. req.body = ${JSON.stringify(req.body)}`);
-      res.status(500).json({ message: "Failed to store toggle metric.", error: new Error("Unknown Error")});
+      return res.status(500).json({ message: "Failed to store toggle metric.", error: new Error("Unknown Error")});
     }
   }
   catch (error) {
     apierror(ApiConfig.METRICS_TOGGLE, userId, error, `req.body = ${JSON.stringify(req.body)}`);
-    res.status(500).json({ message: "Failed to store toggle metric.", error });
+    return res.status(500).json({ message: "Failed to store toggle metric.", error });
   }
 });
 
@@ -249,27 +247,27 @@ app.post(ApiConfig.METRICS_STEP, async (req, res) => {
   if (!validateUserId(userId)) {
     const msg = `Received invalid userId=\"${userId}\"!`;
     logger.apierror(`For ${ApiConfig.METRICS_STEP}: ${msg}`);
-    res.status(400).json({ message: msg });
+    return res.status(400).json({ message: msg });
   }
   const valRes = validateStepMetric(step);
   if (!valRes.isValid) {
     const msg = `Received invalid step metric input!`;
     logger.apierror(`For ${ApiConfig.METRICS_STEP}: ${msg} Reason = ${valRes.info}`);
-    res.status(400).json({ message: msg });
+    return res.status(400).json({ message: msg });
   }
 
   try {
     if (await storeStepMetric(userId, step)) {
-      res.status(200).send();
+      return res.status(200).send();
     }
     else {
       logger.apierror(`Failed to store step metric. req.body = ${JSON.stringify(req.body)}`);
-      res.status(500).json({ message: "Failed to store step metric.", error: new Error("Unknown Error")});
+      return res.status(500).json({ message: "Failed to store step metric.", error: new Error("Unknown Error")});
     }
   }
   catch (error) {
     apierror(ApiConfig.METRICS_STEP, userId, error, `req.body = ${JSON.stringify(req.body)}`);
-    res.status(500).json({ message: "Failed to store step metric.", error });
+    return res.status(500).json({ message: "Failed to store step metric.", error });
   }
 });
 
@@ -281,26 +279,26 @@ app.post(ApiConfig.METRICS_VIZMODE, async (req, res) => {
   if (!validateUserId(userId)) {
     const msg = `Received invalid userId=\"${userId}\"!`;
     logger.apierror(`For ${ApiConfig.METRICS_VIZMODE}: ${msg}`);
-    res.status(400).json({ message: msg });
+    return res.status(400).json({ message: msg });
   }
   const valRes = validateVisMetric(mode);
   if (!valRes.isValid) {
     const msg = `Received invalid vis metric input!`;
     logger.apierror(`For ${ApiConfig.METRICS_VIZMODE}: ${msg} Reason = ${valRes.info}`);
-    res.status(400).json({ message: msg });
+    return res.status(400).json({ message: msg });
   }
 
   try {
     if (!await storeVisModeMetric(userId, mode)) {
-      res.status(200).send();
+      return res.status(200).send();
     }
     else {
       logger.apierror(`Failed to store vis mode metric. req.body = ${JSON.stringify(req.body)}`);
-      res.status(500).json({ message: "Failed to store vis mode metric.", error: new Error("Unknown Error")});
+      return res.status(500).json({ message: "Failed to store vis mode metric.", error: new Error("Unknown Error")});
     }
   }
   catch (error) {
     apierror(ApiConfig.METRICS_VIZMODE, userId, error, `req.body = ${JSON.stringify(req.body)}`);
-    res.status(500).json({ message: "Failed to store viz mode metric.", error });
+    return res.status(500).json({ message: "Failed to store viz mode metric.", error });
   }
 });
