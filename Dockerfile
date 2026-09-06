@@ -8,6 +8,7 @@ COPY pain-frontend/package*.json ./
 RUN npm ci
 COPY pain-frontend/ .
 RUN npm run build
+RUN printf 'FRONTEND_VERSION=%s\n' "$(node -p "require('./package.json').version")" > /frontend-version.env
 
 FROM node:20-bookworm-slim AS builder
 
@@ -40,9 +41,10 @@ RUN npm ci --omit=dev
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/data ./data
 COPY --from=frontend-builder /frontend/dist ./dist/public
+COPY --from=frontend-builder /frontend-version.env ./frontend-version.env
 COPY pain-setup/db-config.env ./
 COPY pain-server/server.env ./
 
 EXPOSE 3000
 
-CMD ["node", "--env-file=./db-config.env", "--env-file=./server.env", "dist/index.js"]
+CMD ["node", "--env-file=./db-config.env", "--env-file=./server.env", "--env-file=./frontend-version.env", "dist/index.js"]

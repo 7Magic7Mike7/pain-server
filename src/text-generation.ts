@@ -1,3 +1,4 @@
+// Copyright © 2026 Michael Artner
 
 export function generateText(painDescription: string): string {
   // todo: optionally, generate a text from the information

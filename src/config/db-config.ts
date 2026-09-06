@@ -1,3 +1,4 @@
+// Copyright © 2026 Michael Artner
 /**
  * Configures all values required to correctly connect and work with the database tables 
  * associated with pain values.

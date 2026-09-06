@@ -1,3 +1,4 @@
+// Copyright © 2026 Michael Artner
 import { PainDbConfig } from "./db-config";
 import { ServerConfig } from "./server-config";
 
