@@ -277,95 +277,51 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
 app.post(ApiConfig.METRICS_TOGGLE, async (req, res) => {
   apiinfo("POST", ApiConfig.METRICS_TOGGLE);
   const { userId, kind, element, enabled } = req.body;
-
-  // validate user input
-  if (!validateUserId(userId)) {
-    const msg = `Received invalid userId=\"${userId}\"!`;
-    logger.apierror(`For ${ApiConfig.METRICS_TOGGLE}: ${msg}`);
-    return res.status(400).json({ message: msg });
+  // Old clients must not persist answer identity or arbitrary text through the legacy route.
+  let safeElement: string | undefined;
+  if (kind === 'layer' && LAYERS.includes(element)) safeElement = element;
+  if (kind === 'category' && typeof element === 'string') {
+    if (/^[A-Z]{3}:/.test(element)) safeElement = element.slice(0, 3);
+    if (element.startsWith('emotion-filter:') && EMOTIONS.includes(element.slice(15))) safeElement = element;
+    if (['festival:visit', 'festival:workshop'].includes(element)) safeElement = element;
   }
-  const valRes = validateToggleMetric(kind, element, enabled);
-  if (!valRes.isValid) {
-    const msg = `Received invalid toggle metric input!`;
-    logger.apierror(`For ${ApiConfig.METRICS_TOGGLE}: ${msg} Reason = ${valRes.info}`);
-    return res.status(400).json({ message: msg });
+  if (!validUserId(userId) || typeof enabled !== 'boolean' || !safeElement ||
+      Object.keys(req.body).some(k => !['userId', 'kind', 'element', 'enabled'].includes(k))) {
+    res.status(400).json({ message: 'Invalid legacy metric.' }); return;
   }
 
   try {
-    if (await storeToggleMetric(userId, kind, element, enabled)) {
-      return res.status(200).send();
-    }
-    else {
-      logger.apierror(`Failed to store step metric. req.body = ${JSON.stringify(req.body)}`);
-      return res.status(500).json({ message: "Failed to store toggle metric.", error: new Error("Unknown Error")});
-    }
+    await storeToggleMetric(userId, kind, safeElement, enabled);
+    res.status(200).send();
   }
   catch (error) {
-    apierror(ApiConfig.METRICS_TOGGLE, userId, error, `req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: "Failed to store toggle metric.", error: new Error("Error for toggle metric") });
+    logger.apierror('Legacy metric storage failed.');
+    res.status(500).json({ message: 'Failed to store metric.' });
   }
 });
 
-app.post(ApiConfig.METRICS_STEP, async (req, res) => {
-  apiinfo("POST", ApiConfig.METRICS_STEP);
-  const { userId, step } = req.body;
-
-  // validate user input
-  if (!validateUserId(userId)) {
-    const msg = `Received invalid userId=\"${userId}\"!`;
-    logger.apierror(`For ${ApiConfig.METRICS_STEP}: ${msg}`);
-    return res.status(400).json({ message: msg });
-  }
-  const valRes = validateStepMetric(step);
-  if (!valRes.isValid) {
-    const msg = `Received invalid step metric input!`;
-    logger.apierror(`For ${ApiConfig.METRICS_STEP}: ${msg} Reason = ${valRes.info}`);
-    return res.status(400).json({ message: msg });
-  }
-
-  try {
-    if (await storeStepMetric(userId, step)) {
-      return res.status(200).send();
-    }
-    else {
-      logger.apierror(`Failed to store step metric. req.body = ${JSON.stringify(req.body)}`);
-      return res.status(500).json({ message: "Failed to store step metric.", error: new Error("Unknown Error")});
-    }
-  }
-  catch (error) {
-    apierror(ApiConfig.METRICS_STEP, userId, error, `req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: "Failed to store step metric.", error: new Error("Error for step metric") });
-  }
+// Old survey-step requests lack consent. New clients use validated consent-bearing batches.
+app.post(ApiConfig.METRICS_STEP, (_req, res) => {
+  res.status(400).json({ message: 'Use consent-bearing interaction batches.' });
 });
 
 app.post(ApiConfig.METRICS_VIZMODE, async (req, res) => {
-  apiinfo("POST", ApiConfig.METRICS_VIZMODE);
   const { userId, mode } = req.body;
-
-  // validate user input
-  if (!validateUserId(userId)) {
-    const msg = `Received invalid userId=\"${userId}\"!`;
-    logger.apierror(`For ${ApiConfig.METRICS_VIZMODE}: ${msg}`);
-    return res.status(400).json({ message: msg });
+  if (!validUserId(userId) || !['points', 'scars', 'multiplex-v0'].includes(mode) ||
+      Object.keys(req.body).some(k => !['userId', 'mode'].includes(k))) {
+    res.status(400).json({ message: 'Invalid visualization metric.' }); return;
   }
-  const valRes = validateVisMetric(mode);
-  if (!valRes.isValid) {
-    const msg = `Received invalid vis metric input!`;
-    logger.apierror(`For ${ApiConfig.METRICS_VIZMODE}: ${msg} Reason = ${valRes.info}`);
-    return res.status(400).json({ message: msg });
-  }
-
-  try {
-    if (!await storeVisModeMetric(userId, mode)) {
-      return res.status(200).send();
-    }
-    else {
-      logger.apierror(`Failed to store vis mode metric. req.body = ${JSON.stringify(req.body)}`);
-      return res.status(500).json({ message: "Failed to store vis mode metric.", error: new Error("Unknown Error")});
-    }
-  }
-  catch (error) {
-    apierror(ApiConfig.METRICS_VIZMODE, userId, error, `req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: "Failed to store viz mode metric.", error: new Error("Error for viz mode metric") });
-  }
+  try { await storeVisModeMetric(userId, mode); res.sendStatus(200); }
+  catch { res.status(503).json({ message: 'Metric storage unavailable.' }); }
 });
+
+// Express parser errors can retain the submitted body. Return only a fixed status message.
+app.use((error: { status?: number }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  res.status(error.status === 413 ? 413 : 400).json({ message: 'Invalid request body.' });
+});
+
+// SPA fallback: serve index.html for non-API routes
+//app.use((req, res, next) => {
+//  if (req.path.startsWith('/api')) return next();
+//  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+//});

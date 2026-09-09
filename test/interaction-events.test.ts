@@ -3,10 +3,10 @@ import request from 'supertest';
 const logs = vi.hoisted(() => ({ apiinfo: vi.fn(), apierror: vi.fn(), info: vi.fn(), warn: vi.fn() }));
 vi.mock('../src/config/log-config', () => ({ LOGGER: { ...logs, child: () => logs } }));
 vi.mock('../src/loader/db-loader', () => ({ storeInteractionBatch: vi.fn(), storeToggleMetric: vi.fn(),
-  storeUserCoordinate: vi.fn(), getPainLayer: vi.fn() }));
+  storeVisModeMetric: vi.fn(), storeUserCoordinate: vi.fn(), getPainLayer: vi.fn() }));
 vi.mock('../src/coordinate-computer', () => ({ computeCoordinate: vi.fn() }));
 import { app } from '../src/app';
-import { storeInteractionBatch, storeToggleMetric } from '../src/loader/db-loader';
+import { storeInteractionBatch, storeToggleMetric, storeVisModeMetric } from '../src/loader/db-loader';
 import { computeCoordinate } from '../src/coordinate-computer';
 import { parseInteractionBatch } from '../src/validation/interaction-events';
 const batch = () => ({ userId: 'abcdefghijklmnop', tabId: 'fe8134f0-8f3d-4d75-ae8e-02df94f318ed',
@@ -74,5 +74,15 @@ describe('privacy-safe interaction batches', () => {
     await request(app).post('/metrics/toggle').send({ userId: batch().userId, kind: 'category',
       element: 'GRL:Greenland', enabled: true }).expect(200);
     expect(storeToggleMetric).toHaveBeenCalledExactlyOnceWith(batch().userId, 'category', 'GRL', true);
+  });
+  it('preserves the setup schema visualization modes, separate from color theme', async () => {
+    for (const mode of ['points', 'scars', 'multiplex-v0']) {
+      await request(app).post('/metrics/vizmode').send({ userId: batch().userId, mode }).expect(200);
+      expect(storeVisModeMetric).toHaveBeenLastCalledWith(batch().userId, mode);
+    }
+    for (const mode of ['light', 'dark', 'PRIVATE_CANARY']) {
+      await request(app).post('/metrics/vizmode').send({ userId: batch().userId, mode }).expect(400);
+    }
+    expect(storeVisModeMetric).toHaveBeenCalledTimes(3);
   });
 });
