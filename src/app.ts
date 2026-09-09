@@ -43,7 +43,7 @@ app.use([ApiConfig.SURVEY, ApiConfig.INIT], sensitiveLimiter);
 app.disable("x-powered-by");
 app.use(helmet());
 
-app.use('/metrics', requestLimits(2000));
+app.use('/metrics', requestLimits(6000));
 app.post('/metrics/events', express.json({ limit: '16kb', strict: true }), async (req, res) => {
   const batch = parseInteractionBatch(req.body);
   if (!batch) { res.status(400).json({ message: 'Invalid interaction batch.' }); return; }
@@ -152,7 +152,7 @@ app.get('/db/:id', async (req, res) => {
 
 // send information about layer structure
 app.head('/init', (_req, res) => { res.set('Allow', 'GET').sendStatus(405); });
-app.get('/init', requestLimits(120), async (req, res) => {
+app.get('/init', requestLimits(600), async (req, res) => {
   apiinfo("GET", "/init");
   try {
     const userId = await registerUser();
@@ -197,7 +197,7 @@ app.get(`${ApiConfig.INIT}/:layer`, async (req, res) => {
 //        User Survey Endpoints
 // ######################################################################################
 
-app.post(ApiConfig.SURVEY, requestLimits(120), async (req, res) => {
+app.post(ApiConfig.SURVEY, requestLimits(600), async (req, res) => {
   apiinfo("POST", ApiConfig.SURVEY);
   if (!validSurveyInput(req.body)) { res.status(400).json({message:'Invalid survey input.'}); return; }
   const { userId, consent, wordBubbles, wordBody, temporality, relations, painDescription } = req.body;

@@ -16,7 +16,7 @@ export function requestLimits(perMinute: number, now = Date.now): RequestHandler
     }
     const key = req.ip ?? req.socket.remoteAddress ?? 'unknown';
     let bucket = visitors.get(key);
-    if (active >= 128 || (!bucket && visitors.size >= 4096)) {
+    if (active >= 256 || (!bucket && visitors.size >= 4096)) {
       res.set('Retry-After', '1').status(503).json({message:'Service busy. Please retry.'}); return;
     }
     if (!bucket || bucket.until <= time) {

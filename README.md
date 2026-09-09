@@ -85,8 +85,8 @@ their bounds are defined in `src/validation/interaction-events.ts`. Unknown prop
 trusted as server time. Apply the additive interaction migration before deploying this update.
 The response is `{ accepted: number }`; retries of the same tab/sequence insert no duplicate rows.
 
-Write work is bounded per network address: 120 registrations or surveys per minute, and 2,000
-metrics requests per minute. Each guard also caps in-flight work at 128 requests and retains
+Write work is bounded per network address: 600 registrations or surveys per minute, and 6,000
+metrics requests per minute. Each guard also caps in-flight work at 256 requests and retains
 at most 4,096 one-minute buckets in memory. Addresses are not written to analytics or logs by
 these guards. Forwarded-address headers are not implicitly trusted. Configure any real reverse
 proxy deliberately, especially when many visitors share its address. Read-only layer delivery

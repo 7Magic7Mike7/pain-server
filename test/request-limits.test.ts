@@ -20,13 +20,13 @@ it('bounds burst rate and resumes after the window without persisting addresses'
   expect(accepted).toBe(3);
 });
 it('caps concurrent work and releases a slot only once on finish plus close', () => {
-  const limit=requestLimits(2000), responses=Array.from({length:130},response);
+  const limit=requestLimits(6000), responses=Array.from({length:258},response);
   let accepted=0;
-  for(const res of responses.slice(0,129)) limit(req,res as unknown as Response,()=>accepted++);
-  expect(accepted).toBe(128); expect(responses[128]!.code).toBe(503);
+  for(const res of responses.slice(0,257)) limit(req,res as unknown as Response,()=>accepted++);
+  expect(accepted).toBe(256); expect(responses[256]!.code).toBe(503);
   responses[0]!.emit('finish'); responses[0]!.emit('close');
-  limit(req,responses[129] as unknown as Response,()=>accepted++);
-  expect(accepted).toBe(129);
+  limit(req,responses[257] as unknown as Response,()=>accepted++);
+  expect(accepted).toBe(257);
   const extra=response(); limit(req,extra as unknown as Response,()=>accepted++);
   expect(extra.code).toBe(503);
 });

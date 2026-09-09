@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import request from 'supertest';
+import { once } from 'node:events';
 const logs = vi.hoisted(() => ({ apiinfo: vi.fn(), apierror: vi.fn(), info: vi.fn(), warn: vi.fn() }));
 vi.mock('../src/config/log-config', () => ({ LOGGER: { ...logs, child: () => logs } }));
 vi.mock('../src/loader/db-loader', () => ({ storeInteractionBatch: vi.fn(), storeToggleMetric: vi.fn(),
@@ -15,6 +16,34 @@ const batch = () => ({ userId: 'abcdefghijklmnop', tabId: 'fe8134f0-8f3d-4d75-ae
 beforeEach(() => { vi.clearAllMocks(); vi.mocked(storeInteractionBatch).mockResolvedValue(1); });
 
 describe('privacy-safe interaction batches', () => {
+  it('admits 200 simultaneous registrations and metric batches within the configured limits', async () => {
+    const server = app.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    try {
+      for (const route of ['/init', '/metrics/events']) {
+        let entered = 0;
+        let release!: () => void;
+        let allEntered!: () => void;
+        const held = new Promise<void>(resolve => { release = resolve; });
+        const ready = new Promise<void>(resolve => { allEntered = resolve; });
+        const work = async () => { if (++entered === 200) allEntered(); await held; };
+        vi.mocked(registerUser).mockImplementation(async () => { await work(); return batch().userId; });
+        vi.mocked(storeInteractionBatch).mockImplementation(async () => { await work(); return 1; });
+        const requests = Array.from({length:200}, () => route === '/init' ?
+          request(server).get(route).then(response => response) :
+          request(server).post(route).send(batch()).then(response => response));
+        let timer: ReturnType<typeof setTimeout>;
+        try {
+          await Promise.race([ready, new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error(`Only ${entered}/200 requests entered ${route}`)), 3000);
+          })]);
+        } finally { clearTimeout(timer!); release(); }
+        const responses = await Promise.all(requests);
+        expect(entered).toBe(200);
+        expect(responses.every(response => response.status === 200)).toBe(true);
+      }
+    } finally { await new Promise<void>(resolve => server.close(() => resolve())); }
+  });
   it('rejects malformed surveys before work and prevents HEAD registration', async () => {
     await request(app).head('/init').expect(405);
     expect(registerUser).not.toHaveBeenCalled();
