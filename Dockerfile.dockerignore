@@ -1,0 +1,18 @@
+# created by: Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach
+# Compose builds from the workspace root, so the server's ordinary .dockerignore is not read.
+*
+!pain-frontend/
+!pain-frontend/**
+!pain-server/
+!pain-server/**
+!pain-setup/
+!pain-setup/db-config.env
+**/node_modules
+**/dist
+**/.git
+**/.offline
+**/offline-release
+**/.cursor
+**/.env
+**/.env.*
+**/*.log
