@@ -85,6 +85,19 @@ their bounds are defined in `src/validation/interaction-events.ts`. Unknown prop
 trusted as server time. Apply the additive interaction migration before deploying this update.
 The response is `{ accepted: number }`; retries of the same tab/sequence insert no duplicate rows.
 
+Write work is bounded per network address: 120 registrations or surveys per minute, and 2,000
+metrics requests per minute. Each guard also caps in-flight work at 128 requests and retains
+at most 4,096 one-minute buckets in memory. Addresses are not written to analytics or logs by
+these guards. Forwarded-address headers are not implicitly trusted. Configure any real reverse
+proxy deliberately, especially when many visitors share its address. Read-only layer delivery
+is not subject to these write limits. Excess work returns 429 or 503 with Retry-After.
+
+HEAD /init never registers a visitor. Survey shapes are validated before work, and requests to
+the message service have a 15-second deadline. Database connection/query waits are bounded.
+Debug routes are unavailable unless DEV=true or DEV=1; production images set DEV=false.
+Public failures omit database internals. The runtime image uses Node 24 LTS, without Python
+(owned by the separate message service) or test-only HTTP tooling.
+
 Survey events require the explicit consent flag and contain only counts, text-presence and
 character-count booleans/numbers, step and elapsed time. They cannot contain selected option names,
 body placements, entered text, generated text, country or emotion. Public globe events can identify

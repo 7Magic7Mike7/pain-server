@@ -10,7 +10,8 @@ import { Coordinate } from '../coordinate-computer';
 import type { InteractionBatch } from '../validation/interaction-events';
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pain_db';
-const pool = new Pool({ connectionString });
+const pool = new Pool({ connectionString, connectionTimeoutMillis: 5000,
+  statement_timeout: 15000, query_timeout: 20000 });
 const logger = LOGGER.child({ service: "DBLoader" });   // logs db queries
 
 /** One database round trip per batch; retries do not create duplicate events. */

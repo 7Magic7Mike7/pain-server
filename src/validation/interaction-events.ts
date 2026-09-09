@@ -1,4 +1,4 @@
-/** created by: Christian Stelmach (chrisp.stel@gmail.com) */
+/** created by: Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach */
 const TYPES = ['control', 'country', 'emotion', 'survey', 'window', 'gesture', 'page'];
 const ACTIONS = ['click', 'open', 'close', 'change', 'enable', 'disable', 'next', 'back',
   'submit', 'start', 'end', 'visible', 'hidden', 'input'];

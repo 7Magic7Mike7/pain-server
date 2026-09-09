@@ -3,17 +3,31 @@ import request from 'supertest';
 const logs = vi.hoisted(() => ({ apiinfo: vi.fn(), apierror: vi.fn(), info: vi.fn(), warn: vi.fn() }));
 vi.mock('../src/config/log-config', () => ({ LOGGER: { ...logs, child: () => logs } }));
 vi.mock('../src/loader/db-loader', () => ({ storeInteractionBatch: vi.fn(), storeToggleMetric: vi.fn(),
-  storeVisModeMetric: vi.fn(), storeUserCoordinate: vi.fn(), getPainLayer: vi.fn() }));
+  storeVisModeMetric: vi.fn(), storeUserCoordinate: vi.fn(), getPainLayer: vi.fn(), registerUser: vi.fn() }));
 vi.mock('../src/coordinate-computer', () => ({ computeCoordinate: vi.fn() }));
 import { app } from '../src/app';
-import { storeInteractionBatch, storeToggleMetric, storeVisModeMetric } from '../src/loader/db-loader';
+import { storeInteractionBatch, storeToggleMetric, storeVisModeMetric, registerUser } from '../src/loader/db-loader';
 import { computeCoordinate } from '../src/coordinate-computer';
 import { parseInteractionBatch } from '../src/validation/interaction-events';
+import { ServerConfig } from '../src/config/server-config';
 const batch = () => ({ userId: 'abcdefghijklmnop', tabId: 'fe8134f0-8f3d-4d75-ae8e-02df94f318ed',
   consent: false, events: [{ seq: 0, type: 'country', target: 'country', action: 'open', country: 'GRL' }] });
 beforeEach(() => { vi.clearAllMocks(); vi.mocked(storeInteractionBatch).mockResolvedValue(1); });
 
 describe('privacy-safe interaction batches', () => {
+  it('rejects malformed surveys before work and prevents HEAD registration', async () => {
+    await request(app).head('/init').expect(405);
+    expect(registerUser).not.toHaveBeenCalled();
+    for (const body of [{}, {wordBubbles:'private'}, {wordBody:[{lat:Infinity,lng:0,word:'pain'}]}]) {
+      await request(app).post('/survey').send(body).expect(400, {message:'Invalid survey input.'});
+    }
+    expect(computeCoordinate).not.toHaveBeenCalled();
+    const development = ServerConfig.DEV_MODE;
+    Object.defineProperty(ServerConfig, 'DEV_MODE', {value:false, configurable:true});
+    try { await request(app).get('/db/1').expect(404); }
+    finally { Object.defineProperty(ServerConfig, 'DEV_MODE', {value:development, configurable:true}); }
+    await request(app).get('/init/__proto__').expect(404);
+  });
   it('accepts a bounded batch and reports deduplicated storage count', async () => {
     await request(app).post('/metrics/events').send(batch()).expect(200, { accepted: 1 });
     vi.mocked(storeInteractionBatch).mockResolvedValue(0);
@@ -65,7 +79,7 @@ describe('privacy-safe interaction batches', () => {
     expect(analytics.text).not.toContain(secret);
     vi.mocked(computeCoordinate).mockRejectedValueOnce(new Error(secret));
     const survey = await request(app).post('/survey').send({ painDescription: secret,
-      wordBubbles: [secret], wordBody: [secret], temporality: [secret], relations: [secret] }).expect(500);
+      wordBubbles: [secret], wordBody: [{word:secret,lat:0,lng:0}], temporality: [secret], relations: [secret] }).expect(500);
     expect(survey.text).not.toContain(secret);
     expect(JSON.stringify(Object.values(logs).map(log => log.mock.calls))).not.toContain(secret);
     expect(storeInteractionBatch).toHaveBeenCalledTimes(1);

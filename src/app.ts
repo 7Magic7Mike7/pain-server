@@ -11,6 +11,8 @@ import { getLayerResponse, getCompressedLayerResponse } from './loader/layer-res
 import { EMOTIONS, LAYERS, parseInteractionBatch, validUserId } from './validation/interaction-events';
 import { computeCoordinate, Coordinate } from './coordinate-computer';
 import { validateUserId } from './config/user-config';
+import { validSurveyInput } from './validation/survey-input';
+import { requestLimits } from './request-limits';
 
 
 // ######################################################################################
@@ -41,6 +43,7 @@ app.use([ApiConfig.SURVEY, ApiConfig.INIT], sensitiveLimiter);
 app.disable("x-powered-by");
 app.use(helmet());
 
+app.use('/metrics', requestLimits(2000));
 app.post('/metrics/events', express.json({ limit: '16kb', strict: true }), async (req, res) => {
   const batch = parseInteractionBatch(req.body);
   if (!batch) { res.status(400).json({ message: 'Invalid interaction batch.' }); return; }
@@ -148,15 +151,16 @@ app.get('/db/:id', async (req, res) => {
 // ######################################################################################
 
 // send information about layer structure
-app.get(ApiConfig.INIT, async (req, res) => {
-  apiinfo("GET", ApiConfig.INIT);
+app.head('/init', (_req, res) => { res.set('Allow', 'GET').sendStatus(405); });
+app.get('/init', requestLimits(120), async (req, res) => {
+  apiinfo("GET", "/init");
   try {
     const userId = await registerUser();
     return res.json({ userId, layerInfo: Object.values(layerInfo) });
   }
   catch (error) {
     apierror(ApiConfig.INIT, USER_UNINITIALIZED, error);
-    return res.status(500).json({ message: "Error while registering user.", error: new Error("Error on init") });
+    res.status(500).json({ message: "Error while registering user." });
   }
 });
 
@@ -165,7 +169,7 @@ app.get(`${ApiConfig.INIT}/:layer`, async (req, res) => {
   const { layer } = req.params;
   const apipath =  `/init/${layer}`;
   apiinfo("GET", apipath);
-  if (layer in layerInfo) {
+  if (Object.prototype.hasOwnProperty.call(layerInfo, layer)) {
     try {
       const data = await getLayerResponse(layer);
       logger.debug(`Responding with ${data.count} data points for ${apipath}`);
@@ -178,13 +182,13 @@ app.get(`${ApiConfig.INIT}/:layer`, async (req, res) => {
     }
     catch (error) {
       apierror(apipath, USER_UNINITIALIZED, error);
-      return res.status(500).json({ message: `Failed to fetch data from layer=\"${layer}\"`, error: new Error("Invalid layer!") });
+      res.status(500).json({ message: "Failed to fetch pain layer." });
     }
   }
   else {
     const errmsg = `${layer} is not among the known layers!`;
     apierror(apipath, USER_UNINITIALIZED, new Error(errmsg));
-    return res.status(500).json({ message: errmsg, error: new Error("Invalid layer!")});
+    res.status(404).json({ message: "Unknown pain layer." });
   }
 });
 
@@ -193,8 +197,9 @@ app.get(`${ApiConfig.INIT}/:layer`, async (req, res) => {
 //        User Survey Endpoints
 // ######################################################################################
 
-app.post(ApiConfig.SURVEY, async (req, res) => {
+app.post(ApiConfig.SURVEY, requestLimits(120), async (req, res) => {
   apiinfo("POST", ApiConfig.SURVEY);
+  if (!validSurveyInput(req.body)) { res.status(400).json({message:'Invalid survey input.'}); return; }
   const { userId, consent, wordBubbles, wordBody, temporality, relations, painDescription } = req.body;
 
   // validate user input
@@ -223,6 +228,7 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
   try {
     const messageResponse = await fetch(`${PAIN_MESSAGE_URL}/survey`, {
       method: "POST",
+      signal: AbortSignal.timeout(15000),
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         wordBubbles,

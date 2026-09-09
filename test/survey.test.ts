@@ -53,6 +53,7 @@ describe("POST /survey", () => {
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("http://pain-message:7246/survey");
+    expect(init.signal).toBeInstanceOf(AbortSignal);
     expect(JSON.parse(String(init.body))).toEqual({
       wordBubbles: survey.wordBubbles,
       wordBody: survey.wordBody,
