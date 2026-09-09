@@ -8,7 +8,6 @@ import { ApiConfig, ServerConfig } from './config/server-config';
 import { getPainLayer, registerUser, storeToggleMetric, storeStepMetric, storeVisModeMetric, storeUserCoordinate } from './loader/db-loader';
 import { parsePainOrigin, validateStepMetric, validateSurvey, validateToggleMetric, validateVisMetric } from './validation/input-validator';
 import { computeCoordinate, Coordinate } from './coordinate-computer';
-import { generateText } from './text-generation';
 import { validateUserId } from './config/user-config';
 
 
@@ -196,9 +195,8 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
     coordinate = await computeCoordinate(wordBubbles, wordBody, temporality, relations, painDescription);
   }
   catch (error) {
-    apierror(ApiConfig.SURVEY, userId, error);  // todo: should these really use apierror if they don't fail due to API reasons?
-    res.status(500).json({ message: "Failed to compute coordinate from survey.", error });
-    return;
+    apierror(ApiConfig.SURVEY, userId, error);
+    return res.status(500).json({ message: "Failed to compute coordinate from survey.", error: new Error("Error during coordinate computation.") });
   }
   try {
     const messageResponse = await fetch(`${PAIN_MESSAGE_URL}/survey`, {
@@ -225,27 +223,26 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
     text = message.paragraph;
   }
   catch (error) {
-    apierror(ApiConfig.SURVEY, userId, error);  // todo: should these really use apierror if they don't fail due to API reasons?
-    res.status(500).json({ message: "Failed to generate text from survey.", error });
-    return;
+    apierror(ApiConfig.SURVEY, userId, error);
+    return res.status(500).json({ message: "Failed to generate text from survey.", error: new Error("Error during text generation") });
   }
   if (coordinate && text) {
     try {
       // only store resulting coordinate if the user gave consent
       if (consent) {
         if (!await storeUserCoordinate(userId, coordinate)) {
-          throw new Error("Failed to store computed coordinates!");
+          logger.error(`Failed to store user coordinate for userId=${userId}.`);
         }
       }
     }
     catch (error) {
-      apierror(ApiConfig.SURVEY, userId, error)
+      apierror(ApiConfig.SURVEY, userId, error);
     }
-    res.status(200).json({ lat: coordinate.lat, lng: coordinate.lng, text });
+    return res.status(200).json({ lat: coordinate.lat, lng: coordinate.lng, text });
   }
   else {
-    apierror(ApiConfig.SURVEY, userId, new Error(`Either no coordinate or text! coordinate=${coordinate}, text="${text}"`));
-    res.status(500).json({ message: ``}); // todo
+    apierror(ApiConfig.SURVEY, userId, new Error("Coordinate or message unavailable"));
+    return res.status(500).json({ message: "Failed to complete survey." });
   }
 });
 
