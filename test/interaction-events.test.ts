@@ -20,6 +20,15 @@ describe('privacy-safe interaction batches', () => {
     await request(app).post('/metrics/events').send(batch()).expect(200, { accepted: 0 });
     expect(storeInteractionBatch).toHaveBeenCalledTimes(2);
   });
+  it('retains click occurrence time separately from receipt time, and accepts older clients', () => {
+    const b = batch();
+    expect(parseInteractionBatch(b)).not.toBeNull();
+    const atMs = Date.parse('2026-09-11T12:00:00Z');
+    expect(parseInteractionBatch({...b, events: [{...b.events[0], atMs}]})?.events[0].atMs).toBe(atMs);
+    for (const value of [-1, NaN, Infinity, '2026-09-11', 4102444800001]) {
+      expect(parseInteractionBatch({...b, events: [{...b.events[0], atMs: value}]})).toBeNull();
+    }
+  });
   it('rejects unknown fields, arbitrary text, invalid enums, sizes and numbers before SQL', async () => {
     const b = batch(), e = b.events[0];
     const invalid = [ { ...b, secret: 'canary' }, { ...b, userId: 'unknown' },

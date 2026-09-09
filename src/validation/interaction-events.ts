@@ -1,3 +1,4 @@
+/** created by: Christian Stelmach (chrisp.stel@gmail.com) */
 const TYPES = ['control', 'country', 'emotion', 'survey', 'window', 'gesture', 'page'];
 const ACTIONS = ['click', 'open', 'close', 'change', 'enable', 'disable', 'next', 'back',
   'submit', 'start', 'end', 'visible', 'hidden', 'input'];
@@ -10,10 +11,10 @@ export const EMOTIONS = ['01_pain', '02_hurt', '03_eco_anxiety', '04_uncertainty
   '12_fear', '13_helplessness', '14_shame'];
 export const LAYERS = ['emopain', 'envpain', 'physpain', 'socioecopain', 'all-layers'];
 const KEYS = ['seq', 'type', 'target', 'action', 'country', 'emotion', 'enabled', 'layer', 'step',
-  'count', 'selectedCount', 'hasText', 'characters', 'durationMs'];
+  'count', 'selectedCount', 'hasText', 'characters', 'durationMs', 'atMs'];
 
 export type InteractionEvent = {
-  seq: number; type: string; target: string; action: string;
+  seq: number; type: string; target: string; action: string; atMs?: number;
   country?: string; emotion?: string; enabled?: boolean; layer?: string; step?: number;
   count?: number; selectedCount?: number; hasText?: boolean; characters?: number; durationMs?: number;
 };
@@ -45,7 +46,7 @@ export function parseInteractionBatch(value: unknown): InteractionBatch | null {
     if (e.layer !== undefined && !LAYERS.includes(e.layer as string)) return null;
     for (const key of ['enabled', 'hasText']) if (e[key] !== undefined && typeof e[key] !== 'boolean') return null;
     for (const [key, max] of [['step', 5], ['count', 10000], ['selectedCount', 10000],
-      ['characters', 100000], ['durationMs', 86400000]] as const) {
+      ['characters', 100000], ['durationMs', 86400000], ['atMs', 4102444800000]] as const) {
       if (e[key] !== undefined && !integer(e[key], max)) return null;
     }
     const survey = e.type === 'survey' || String(e.target).startsWith('survey') || e.target === 'result';

@@ -79,6 +79,10 @@ Interaction analytics accepts at most 32 events and 16 KiB per JSON request. The
 existing 16-character `userId`, a UUIDv4 `tabId`, a boolean `consent`, and `events`. Each event has a
 monotonic safe-integer `seq` plus allowlisted `type`, `target`, and `action`. Optional fields and
 their bounds are defined in `src/validation/interaction-events.ts`. Unknown properties are rejected.
+
+`atMs` records device-reported event time in epoch milliseconds; ingestion stores it as
+`occurred_at` separately from `received_at`. Older clients may omit it. Device clocks are not
+trusted as server time. Apply the additive interaction migration before deploying this update.
 The response is `{ accepted: number }`; retries of the same tab/sequence insert no duplicate rows.
 
 Survey events require the explicit consent flag and contain only counts, text-presence and

@@ -20,14 +20,14 @@ export async function storeInteractionBatch(batch: InteractionBatch): Promise<nu
     inserted AS (
       INSERT INTO interactionevents
         (userid, tabid, seq, event_type, target, action, country, emotion, enabled, layer,
-         step, count, selected_count, has_text, characters, duration_ms, survey_consent)
+         step, count, selected_count, has_text, characters, duration_ms, survey_consent, occurred_at)
       SELECT visitor.id, $2::uuid, e.seq, e.type, e.target, e.action, e.country, e.emotion,
         e.enabled, e.layer, e.step, e.count, e."selectedCount", e."hasText", e.characters,
-        e."durationMs", $4
+        e."durationMs", $4, to_timestamp(e."atMs" / 1000.0)
       FROM visitor CROSS JOIN jsonb_to_recordset($3::jsonb) AS e
         (seq bigint, type text, target text, action text, country text, emotion text,
          enabled boolean, layer text, step smallint, count integer, "selectedCount" integer,
-         "hasText" boolean, characters integer, "durationMs" integer)
+         "hasText" boolean, characters integer, "durationMs" integer, "atMs" bigint)
       ON CONFLICT (tabid, seq) DO NOTHING RETURNING id
     ) SELECT EXISTS(SELECT 1 FROM visitor) AS known, (SELECT count(*) FROM inserted)::integer AS accepted`,
   [batch.userId, batch.tabId, JSON.stringify(batch.events), batch.consent]);
