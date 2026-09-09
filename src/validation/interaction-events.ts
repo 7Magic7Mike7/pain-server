@@ -5,7 +5,7 @@ const ACTIONS = ['click', 'open', 'close', 'change', 'enable', 'disable', 'next'
 const TARGETS = ['layer', 'all-layers', 'theme', 'sound', 'about', 'sources', 'share', 'consent',
   'survey', 'survey-options', 'survey-text', 'survey-body', 'country', 'emotion', 'emotion-filter',
   'globe', 'page', 'festival', 'workshop', 'result', 'cycle', 'quality', 'menu', 'source-link',
-  'about-link', 'globe-rotate', 'globe-zoom'];
+  'about-link', 'globe-rotate', 'globe-zoom', 'operator', 'data-export', 'exit', 'update-settings'];
 export const EMOTIONS = ['01_pain', '02_hurt', '03_eco_anxiety', '04_uncertainty', '05_grief',
   '06_anger', '07_hardship', '08_displacement', '09_trauma', '10_loneliness', '11_depression',
   '12_fear', '13_helplessness', '14_shame'];
