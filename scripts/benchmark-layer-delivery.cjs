@@ -47,6 +47,7 @@ if (process.argv[2] === 'worker') {
   const encoding = process.argv.includes('--gzip') ? 'gzip' : 'identity';
   const agent = new http.Agent({ keepAlive: true, maxSockets: concurrency * (startup ? 4 : 1) });
   let worker;
+  let stopping = false;
   async function get(port, layer, measureCompression) {
     const started = performance.now();
     return new Promise((resolve, reject) => {
@@ -94,6 +95,12 @@ if (process.argv[2] === 'worker') {
   }
   async function run() {
     worker = fork(__filename, ['worker'], { stdio: ['ignore', 'ignore', 'inherit', 'ipc'] });
+    worker.once('exit', (code, signal) => {
+      if (!stopping) {
+        console.error(`Benchmark worker exited before completion (${signal ?? code}).`);
+        process.exitCode = 1;
+      }
+    });
     const [ready] = await once(worker, 'message');
     if (!ready.ready) throw Error('Worker did not provide a port');
     const rows = [];
@@ -148,6 +155,7 @@ if (process.argv[2] === 'worker') {
     if (!passed) process.exitCode = 1;
   }
   run().catch((error) => { console.error(error.stack); process.exitCode = 1; }).finally(() => {
+    stopping = true;
     agent.destroy();
     if (worker?.connected) worker.send('stop');
   });
