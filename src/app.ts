@@ -297,7 +297,7 @@ app.post(ApiConfig.METRICS_TOGGLE, async (req, res) => {
   }
 
   try {
-    await storeToggleMetric(userId, kind, safeElement, enabled);
+    if (!await storeToggleMetric(userId, kind, safeElement, enabled)) throw new Error('Metric was not stored');
     res.status(200).send();
   }
   catch (error) {
@@ -317,7 +317,10 @@ app.post(ApiConfig.METRICS_VIZMODE, async (req, res) => {
       Object.keys(req.body).some(k => !['userId', 'mode'].includes(k))) {
     res.status(400).json({ message: 'Invalid visualization metric.' }); return;
   }
-  try { await storeVisModeMetric(userId, mode); res.sendStatus(200); }
+  try {
+    if (!await storeVisModeMetric(userId, mode)) throw new Error('Metric was not stored');
+    res.sendStatus(200);
+  }
   catch { res.status(503).json({ message: 'Metric storage unavailable.' }); }
 });
 

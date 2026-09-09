@@ -85,12 +85,19 @@ their bounds are defined in `src/validation/interaction-events.ts`. Unknown prop
 trusted as server time. Apply the additive interaction migration before deploying this update.
 The response is `{ accepted: number }`; retries of the same tab/sequence insert no duplicate rows.
 
-Write work is bounded per network address: 600 registrations or surveys per minute, and 6,000
-metrics requests per minute. Each guard also caps in-flight work at 256 requests and retains
-at most 4,096 one-minute buckets in memory. Addresses are not written to analytics or logs by
-these guards. Forwarded-address headers are not implicitly trusted. Configure any real reverse
-proxy deliberately, especially when many visitors share its address. Read-only layer delivery
-is not subject to these write limits. Excess work returns 429 or 503 with Retry-After.
+The upstream `security` middleware runs first: 1,000 requests per 15 minutes per client address,
+and a shared 10-request/minute limit on `/survey`, `/init` and its layer subpaths. It trusts one
+reverse-proxy hop; deployment must match that topology. Visitors sharing an address share these
+limits. Helmet and the 100 kB general JSON limit are retained; event batches have a tighter 16 kB
+parser before the general parser.
+
+The additional write guards then allow up to 600 registrations/surveys or 6,000 metrics requests
+per minute, with at most 256 active requests and 4,096 address buckets. These guards do not raise
+the earlier security limits and do not persist addresses. Excess work returns 429 or 503.
+
+Earlier single-address 50/200-client throughput figures predate this security base. The existing
+read-only benchmark can now intentionally hit HTTP 429. The mocked concurrency tests use distinct
+forwarded client addresses and separately verify that the 11th sensitive request is rejected.
 
 HEAD /init never registers a visitor. Survey shapes are validated before work, and requests to
 the message service have a 15-second deadline. Database connection/query waits are bounded.

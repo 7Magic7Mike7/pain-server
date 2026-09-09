@@ -18,7 +18,8 @@ describe('read-only layer delivery', () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
       return rows;
     });
-    const responses = await Promise.all(Array.from({ length: 50 }, () => request(app).get('/init/emopain')));
+    const responses = await Promise.all(Array.from({ length: 50 }, (_, index) =>
+      request(app).get('/init/emopain').set('X-Forwarded-For', `198.51.100.${index+1}`)));
     for (const response of responses) {
       expect(response.status, response.text).toBe(200);
       expect(response.text).toBe(JSON.stringify(rows));

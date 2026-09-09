@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import { once } from 'node:events';
-const logs = vi.hoisted(() => ({ apiinfo: vi.fn(), apierror: vi.fn(), info: vi.fn(), warn: vi.fn() }));
+const logs = vi.hoisted(() => ({ apiinfo: vi.fn(), apierror: vi.fn(), info: vi.fn(), warn: vi.fn(), debug: vi.fn(), error: vi.fn() }));
 vi.mock('../src/config/log-config', () => ({ LOGGER: { ...logs, child: () => logs } }));
 vi.mock('../src/loader/db-loader', () => ({ storeInteractionBatch: vi.fn(), storeToggleMetric: vi.fn(),
   storeVisModeMetric: vi.fn(), storeUserCoordinate: vi.fn(), getPainLayer: vi.fn(), registerUser: vi.fn() }));
@@ -13,10 +13,14 @@ import { parseInteractionBatch } from '../src/validation/interaction-events';
 import { ServerConfig } from '../src/config/server-config';
 const batch = () => ({ userId: 'abcdefghijklmnop', tabId: 'fe8134f0-8f3d-4d75-ae8e-02df94f318ed',
   consent: false, events: [{ seq: 0, type: 'country', target: 'country', action: 'open', country: 'GRL' }] });
-beforeEach(() => { vi.clearAllMocks(); vi.mocked(storeInteractionBatch).mockResolvedValue(1); });
+beforeEach(() => {
+  vi.clearAllMocks(); vi.mocked(storeInteractionBatch).mockResolvedValue(1);
+  vi.mocked(storeToggleMetric).mockResolvedValue(true);
+  vi.mocked(storeVisModeMetric).mockResolvedValue(true);
+});
 
 describe('privacy-safe interaction batches', () => {
-  it('admits 200 simultaneous registrations and metric batches within the configured limits', async () => {
+  it('admits 200 distinct proxied clients within the security branch limits', async () => {
     const server = app.listen(0, '127.0.0.1');
     await once(server, 'listening');
     try {
@@ -29,9 +33,9 @@ describe('privacy-safe interaction batches', () => {
         const work = async () => { if (++entered === 200) allEntered(); await held; };
         vi.mocked(registerUser).mockImplementation(async () => { await work(); return batch().userId; });
         vi.mocked(storeInteractionBatch).mockImplementation(async () => { await work(); return 1; });
-        const requests = Array.from({length:200}, () => route === '/init' ?
-          request(server).get(route).then(response => response) :
-          request(server).post(route).send(batch()).then(response => response));
+        const requests = Array.from({length:200}, (_, index) => route === '/init' ?
+          request(server).get(route).set('X-Forwarded-For', `192.0.2.${index+1}`).then(response => response) :
+          request(server).post(route).set('X-Forwarded-For', `192.0.2.${index+1}`).send(batch()).then(response => response));
         let timer: ReturnType<typeof setTimeout>;
         try {
           await Promise.race([ready, new Promise((_, reject) => {
@@ -53,7 +57,7 @@ describe('privacy-safe interaction batches', () => {
     expect(computeCoordinate).not.toHaveBeenCalled();
     const development = ServerConfig.DEV_MODE;
     Object.defineProperty(ServerConfig, 'DEV_MODE', {value:false, configurable:true});
-    try { await request(app).get('/db/1').expect(404); }
+    try { await request(app).get('/db/1').expect(410); }
     finally { Object.defineProperty(ServerConfig, 'DEV_MODE', {value:development, configurable:true}); }
     await request(app).get('/init/__proto__').expect(404);
   });
@@ -102,13 +106,15 @@ describe('privacy-safe interaction batches', () => {
     }
   });
   it('never echoes storage errors or raw survey content, including error paths', async () => {
-    const secret = 'RAW_SURVEY_CANARY_π';
+    const secret = 'private survey canary';
     vi.mocked(storeInteractionBatch).mockRejectedValueOnce(new Error(secret));
     const analytics = await request(app).post('/metrics/events').send(batch()).expect(503);
     expect(analytics.text).not.toContain(secret);
     vi.mocked(computeCoordinate).mockRejectedValueOnce(new Error(secret));
     const survey = await request(app).post('/survey').send({ painDescription: secret,
-      wordBubbles: [secret], wordBody: [{word:secret,lat:0,lng:0}], temporality: [secret], relations: [secret] }).expect(500);
+      userId:batch().userId, consent:false, wordBubbles:['grief'], wordBody:[{word:'grief',lat:0,lng:0}],
+      temporality:['days'], relations:['my community'] }).expect(500);
+    expect(computeCoordinate).toHaveBeenCalled();
     expect(survey.text).not.toContain(secret);
     expect(JSON.stringify(Object.values(logs).map(log => log.mock.calls))).not.toContain(secret);
     expect(storeInteractionBatch).toHaveBeenCalledTimes(1);
@@ -136,5 +142,11 @@ describe('privacy-safe interaction batches', () => {
       await request(app).post('/metrics/vizmode').send({ userId: batch().userId, mode }).expect(400);
     }
     expect(storeVisModeMetric).toHaveBeenCalledTimes(3);
+  });
+  it('does not acknowledge a false result from the upstream metric storage contract', async () => {
+    vi.mocked(storeToggleMetric).mockResolvedValueOnce(false);
+    await request(app).post('/metrics/toggle').send({userId:batch().userId,kind:'layer',element:'emopain',enabled:true}).expect(500);
+    vi.mocked(storeVisModeMetric).mockResolvedValueOnce(false);
+    await request(app).post('/metrics/vizmode').send({userId:batch().userId,mode:'points'}).expect(503);
   });
 });
