@@ -7,7 +7,10 @@ const { createGzip, createGunzip } = require('node:zlib');
 const { once } = require('node:events');
 
 const layers = ['emopain', 'envpain', 'physpain', 'socioecopain'];
-const concurrency = 50;
+const clientFlag = process.argv.indexOf('--clients');
+const concurrency = clientFlag < 0 ? 50 : Number(process.argv[clientFlag + 1]);
+if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 200) throw Error('Use 1 to 200 clients');
+const startup = process.argv.includes('--startup');
 
 if (process.argv[2] === 'worker') {
   const { Pool } = require('pg');
@@ -42,7 +45,7 @@ if (process.argv[2] === 'worker') {
   });
 } else {
   const encoding = process.argv.includes('--gzip') ? 'gzip' : 'identity';
-  const agent = new http.Agent({ keepAlive: true, maxSockets: concurrency });
+  const agent = new http.Agent({ keepAlive: true, maxSockets: concurrency * (startup ? 4 : 1) });
   let worker;
   async function get(port, layer, measureCompression) {
     const started = performance.now();
@@ -106,13 +109,38 @@ if (process.argv[2] === 'worker') {
         rows.push({ layer, pass, clients: concurrency,
           errors: results.filter((r) => r.status !== 200).length,
           mismatches: results.filter((r) => r.hash !== expected).length,
-          medianMs: Number(times[24].toFixed(2)), p95Ms: Number(times[47].toFixed(2)),
+          medianMs: Number(times[Math.floor((times.length - 1) * .5)].toFixed(2)),
+          p95Ms: Number(times[Math.floor((times.length - 1) * .95)].toFixed(2)),
           wireBytes: results.reduce((sum, r) => sum + r.wireBytes, 0),
           bodyBytes: results[0].decodedBytes, bodyHash: expected,
           gzipSampleBytes: results[0].gzipBytes, encoding: results[0].encoding,
           queries: after.queries - before.queries, memory: after.memory, peaks: after.peaks,
           maxRssBytes: after.maxRssBytes });
         before = after;
+      }
+    }
+    if (startup) {
+      // Every client requests all four layers together, matching the initial all-pain view.
+      for (const pass of ['startup-warm', 'startup-repeat']) {
+        const began = performance.now();
+        const hashes = new Map(rows.map(row => [row.layer, row.bodyHash]));
+        const results = await Promise.all(Array.from({length:concurrency}, async () => {
+          const start = performance.now();
+          const responses = await Promise.all(layers.map(async layer => ({layer,...await get(ready.ready,layer,false)})));
+          return {elapsedMs:performance.now()-start, responses};
+        }));
+        const all = results.flatMap(result => result.responses);
+        const times = results.map(result=>result.elapsedMs).sort((a,b)=>a-b);
+        const after = await stats();
+        rows.push({layer:'all-layers',pass,clients:concurrency,requests:all.length,
+          errors:all.filter(r=>r.status!==200).length,
+          mismatches:all.filter(r=>r.hash!==hashes.get(r.layer)).length,
+          medianMs:Number(times[Math.floor((times.length-1)*.5)].toFixed(2)),
+          p95Ms:Number(times[Math.floor((times.length-1)*.95)].toFixed(2)),
+          wallMs:Number((performance.now()-began).toFixed(2)),
+          wireBytes:all.reduce((sum,r)=>sum+r.wireBytes,0),queries:after.queries-before.queries,
+          memory:after.memory,peaks:after.peaks,maxRssBytes:after.maxRssBytes});
+        before=after;
       }
     }
     const passed = rows.every((r) => r.errors === 0 && r.mismatches === 0);
