@@ -5,16 +5,16 @@ import helmet from "helmet";
 import { getAllLayerInfo, LayerInfo, validateLayers } from './config/layer-config';
 import { LOGGER } from './config/log-config';
 import { ApiConfig, ServerConfig } from './config/server-config';
-import { registerUser, storeToggleMetric, storeStepMetric, storeVisModeMetric, storeUserCoordinate } from './loader/db-loader';
-import { parsePainOrigin, validateStepMetric, validateSurvey, validateToggleMetric, validateVisMetric } from './validation/input-validator';
+import { registerUser, storeToggleMetric, storeVisModeMetric, storeUserCoordinate, storeInteractionBatch } from './loader/db-loader';
+import { parsePainOrigin, validateSurvey } from './validation/input-validator';
 import { getLayerResponse, getCompressedLayerResponse } from './loader/layer-response';
+import { EMOTIONS, LAYERS, parseInteractionBatch, validUserId } from './validation/interaction-events';
 import { computeCoordinate, Coordinate } from './coordinate-computer';
 import { validateUserId } from './config/user-config';
 
 
 // ######################################################################################
 export const app = express();
-app.use(express.json({ limit: "100kb" }));  // 100 kb is the default
 
 app.set("trust proxy", 1);
 
@@ -40,6 +40,21 @@ app.use([ApiConfig.SURVEY, ApiConfig.INIT], sensitiveLimiter);
 // helmet
 app.disable("x-powered-by");
 app.use(helmet());
+
+app.post('/metrics/events', express.json({ limit: '16kb', strict: true }), async (req, res) => {
+  const batch = parseInteractionBatch(req.body);
+  if (!batch) { res.status(400).json({ message: 'Invalid interaction batch.' }); return; }
+  try {
+    const accepted = await storeInteractionBatch(batch);
+    if (accepted === null) { res.status(400).json({ message: 'Unknown session.' }); return; }
+    res.status(200).json({ accepted });
+  } catch {
+    // Never serialize rejected content or database errors containing submitted parameters.
+    res.status(503).json({ message: 'Interaction storage unavailable.' });
+  }
+});
+app.use(express.json({ limit: "100kb" }));
+
 
 
 // ######################################################################################
@@ -201,8 +216,9 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
     coordinate = await computeCoordinate(wordBubbles, wordBody, temporality, relations, painDescription);
   }
   catch (error) {
-    apierror(ApiConfig.SURVEY, userId, error);
-    return res.status(500).json({ message: "Failed to compute coordinate from survey.", error: new Error("Error during coordinate computation.") });
+    logger.apierror('Survey processing failed.');  // todo: should these really use apierror if they don't fail due to API reasons?
+    res.status(500).json({ message: "Failed to compute coordinate from survey." });
+    return;
   }
   try {
     const messageResponse = await fetch(`${PAIN_MESSAGE_URL}/survey`, {
@@ -229,26 +245,27 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
     text = message.paragraph;
   }
   catch (error) {
-    apierror(ApiConfig.SURVEY, userId, error);
-    return res.status(500).json({ message: "Failed to generate text from survey.", error: new Error("Error during text generation") });
+    logger.apierror('Survey processing failed.');  // todo: should these really use apierror if they don't fail due to API reasons?
+    res.status(500).json({ message: "Failed to generate text from survey." });
+    return;
   }
   if (coordinate && text) {
     try {
       // only store resulting coordinate if the user gave consent
-      if (consent) {
+      if (consent === true) {
         if (!await storeUserCoordinate(userId, coordinate)) {
           logger.error(`Failed to store user coordinate for userId=${userId}.`);
         }
       }
     }
     catch (error) {
-      apierror(ApiConfig.SURVEY, userId, error);
+      logger.apierror('Survey storage failed.');
     }
     return res.status(200).json({ lat: coordinate.lat, lng: coordinate.lng, text });
   }
   else {
-    apierror(ApiConfig.SURVEY, userId, new Error("Coordinate or message unavailable"));
-    return res.status(500).json({ message: "Failed to complete survey." });
+    logger.apierror('Survey result unavailable.');
+    return res.status(500).json({ message: 'Failed to complete survey.' });
   }
 });
 

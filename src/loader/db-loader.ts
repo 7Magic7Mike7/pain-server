@@ -7,10 +7,32 @@ import { parsePainOrigin } from '../validation/input-validator';
 import { EXPERIMENTAL_LAYER_PREFIX, isExperimentalLayer } from '../config/layer-config';
 import { generateUserId } from '../config/user-config';
 import { Coordinate } from '../coordinate-computer';
+import type { InteractionBatch } from '../validation/interaction-events';
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pain_db';
 const pool = new Pool({ connectionString });
 const logger = LOGGER.child({ service: "DBLoader" });   // logs db queries
+
+/** One database round trip per batch; retries do not create duplicate events. */
+export async function storeInteractionBatch(batch: InteractionBatch): Promise<number | null> {
+  const result = await pool.query(`
+    WITH visitor AS (SELECT id FROM ${UserDbConfig.TN_USERS} WHERE ${UserDbConfig.COL_USER_ID} = $1),
+    inserted AS (
+      INSERT INTO interactionevents
+        (userid, tabid, seq, event_type, target, action, country, emotion, enabled, layer,
+         step, count, selected_count, has_text, characters, duration_ms, survey_consent)
+      SELECT visitor.id, $2::uuid, e.seq, e.type, e.target, e.action, e.country, e.emotion,
+        e.enabled, e.layer, e.step, e.count, e."selectedCount", e."hasText", e.characters,
+        e."durationMs", $4
+      FROM visitor CROSS JOIN jsonb_to_recordset($3::jsonb) AS e
+        (seq bigint, type text, target text, action text, country text, emotion text,
+         enabled boolean, layer text, step smallint, count integer, "selectedCount" integer,
+         "hasText" boolean, characters integer, "durationMs" integer)
+      ON CONFLICT (tabid, seq) DO NOTHING RETURNING id
+    ) SELECT EXISTS(SELECT 1 FROM visitor) AS known, (SELECT count(*) FROM inserted)::integer AS accepted`,
+  [batch.userId, batch.tabId, JSON.stringify(batch.events), batch.consent]);
+  return result.rows[0].known ? result.rows[0].accepted : null;
+}
 
 export type PainData = {
     id: number;
