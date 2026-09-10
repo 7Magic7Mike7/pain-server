@@ -1,7 +1,9 @@
+# File attribution
+# edited by Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach
 # Multi-stage Dockerfile for the pain-server service
-# Builds the TypeScript app, installs Python 3.11, and produces a smaller runtime image.
+# Builds the TypeScript app. The separate message service owns the Python runtime.
 
-FROM node:20-bookworm-slim AS frontend-builder
+FROM node:24-bookworm-slim AS frontend-builder
 
 WORKDIR /frontend
 COPY pain-frontend/package*.json ./
@@ -10,12 +12,7 @@ COPY pain-frontend/ .
 RUN npm run build
 RUN printf 'FRONTEND_VERSION=%s\n' "$(node -p "require('./package.json').version")" > /frontend-version.env
 
-FROM node:20-bookworm-slim AS builder
-
-# Install Python 3.11 and pip for later Python script support
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3.11 python3.11-venv python3-pip \
-    && rm -rf /var/lib/apt/lists/*
+FROM node:24-bookworm-slim AS builder
 
 WORKDIR /usr/src/app
 
@@ -28,10 +25,8 @@ RUN mkdir -p data   # create an empty data folder if it does not exist
 RUN npm run build
 
 # Runtime image
-FROM node:20-bookworm-slim AS runtime
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3.11 python3.11-venv python3-pip \
-    && rm -rf /var/lib/apt/lists/*
+FROM node:24-bookworm-slim AS runtime
+ENV NODE_ENV=production DEV=false
 
 WORKDIR /usr/src/app
 

@@ -1,3 +1,7 @@
+/*
+ * File attribution
+ * edited by Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach
+ */
 // Copyright © 2026 Michael Artner
 import express from 'express';
 import rateLimit from 'express-rate-limit';
@@ -5,16 +9,18 @@ import helmet from "helmet";
 import { getAllLayerInfo, LayerInfo, validateLayers } from './config/layer-config';
 import { LOGGER } from './config/log-config';
 import { ApiConfig, ServerConfig } from './config/server-config';
-import { getPainLayer, registerUser, storeToggleMetric, storeStepMetric, storeVisModeMetric, storeUserCoordinate } from './loader/db-loader';
-import { parsePainOrigin, validateStepMetric, validateSurvey, validateToggleMetric, validateVisMetric } from './validation/input-validator';
+import { registerUser, storeToggleMetric, storeVisModeMetric, storeUserCoordinate, storeInteractionBatch } from './loader/db-loader';
+import { parsePainOrigin, validateSurvey } from './validation/input-validator';
+import { getLayerResponse, getCompressedLayerResponse } from './loader/layer-response';
+import { EMOTIONS, LAYERS, parseInteractionBatch, validUserId } from './validation/interaction-events';
 import { computeCoordinate, Coordinate } from './coordinate-computer';
-import { generateText } from './text-generation';
 import { validateUserId } from './config/user-config';
+import { validSurveyInput } from './validation/survey-input';
+import { requestLimits } from './request-limits';
 
 
 // ######################################################################################
 export const app = express();
-app.use(express.json({ limit: "100kb" }));  // 100 kb is the default
 
 app.set("trust proxy", 1);
 
@@ -41,6 +47,22 @@ app.use([ApiConfig.SURVEY, ApiConfig.INIT], sensitiveLimiter);
 app.disable("x-powered-by");
 app.use(helmet());
 
+app.use('/metrics', requestLimits(6000));
+app.post('/metrics/events', express.json({ limit: '16kb', strict: true }), async (req, res) => {
+  const batch = parseInteractionBatch(req.body);
+  if (!batch) { res.status(400).json({ message: 'Invalid interaction batch.' }); return; }
+  try {
+    const accepted = await storeInteractionBatch(batch);
+    if (accepted === null) { res.status(400).json({ message: 'Unknown session.' }); return; }
+    res.status(200).json({ accepted });
+  } catch {
+    // Never serialize rejected content or database errors containing submitted parameters.
+    res.status(503).json({ message: 'Interaction storage unavailable.' });
+  }
+});
+app.use(express.json({ limit: "100kb" }));
+
+
 
 // ######################################################################################
 
@@ -51,6 +73,7 @@ const USER_UNINITIALIZED = "uninitialized";
 // ######################################################################################
 
 const logger = LOGGER.child({ service: "API" });
+const PAIN_MESSAGE_URL = process.env.PAIN_MESSAGE_URL ?? "http://pain-message:7246";
 /**
  * Uses logger.apiinfo() to log information about API calls.
  * 
@@ -132,15 +155,16 @@ app.get('/db/:id', async (req, res) => {
 // ######################################################################################
 
 // send information about layer structure
-app.get(ApiConfig.INIT, async (req, res) => {
-  apiinfo("GET", ApiConfig.INIT);
+app.head('/init', (_req, res) => { res.set('Allow', 'GET').sendStatus(405); });
+app.get('/init', requestLimits(600), async (req, res) => {
+  apiinfo("GET", "/init");
   try {
     const userId = await registerUser();
     return res.json({ userId, layerInfo: Object.values(layerInfo) });
   }
   catch (error) {
     apierror(ApiConfig.INIT, USER_UNINITIALIZED, error);
-    return res.status(500).json({ message: "Error while registering user.", error: new Error("Error on init") });
+    res.status(500).json({ message: "Error while registering user." });
   }
 });
 
@@ -149,21 +173,26 @@ app.get(`${ApiConfig.INIT}/:layer`, async (req, res) => {
   const { layer } = req.params;
   const apipath =  `/init/${layer}`;
   apiinfo("GET", apipath);
-  if (layer in layerInfo) {
+  if (Object.prototype.hasOwnProperty.call(layerInfo, layer)) {
     try {
-      const data = await getPainLayer(layer);
-      logger.debug(`Responding with ${data.length} data points for ${apipath}`);
-      return res.json(data);
+      const data = await getLayerResponse(layer);
+      logger.debug(`Responding with ${data.count} data points for ${apipath}`);
+      res.vary('Accept-Encoding');
+      const encoding = req.acceptsEncodings('gzip', 'identity');
+      if (!encoding) { res.sendStatus(406); return; }
+      const body = encoding === 'gzip' ? await getCompressedLayerResponse(data) : data.body;
+      if (encoding === 'gzip') res.set('Content-Encoding', 'gzip');
+      res.set('Content-Type', 'application/json; charset=utf-8').send(body);
     }
     catch (error) {
       apierror(apipath, USER_UNINITIALIZED, error);
-      return res.status(500).json({ message: `Failed to fetch data from layer=\"${layer}\"`, error: new Error("Invalid layer!") });
+      res.status(500).json({ message: "Failed to fetch pain layer." });
     }
   }
   else {
     const errmsg = `${layer} is not among the known layers!`;
     apierror(apipath, USER_UNINITIALIZED, new Error(errmsg));
-    return res.status(500).json({ message: errmsg, error: new Error("Invalid layer!")});
+    res.status(404).json({ message: "Unknown pain layer." });
   }
 });
 
@@ -172,8 +201,9 @@ app.get(`${ApiConfig.INIT}/:layer`, async (req, res) => {
 //        User Survey Endpoints
 // ######################################################################################
 
-app.post(ApiConfig.SURVEY, async (req, res) => {
+app.post(ApiConfig.SURVEY, requestLimits(600), async (req, res) => {
   apiinfo("POST", ApiConfig.SURVEY);
+  if (!validSurveyInput(req.body)) { res.status(400).json({message:'Invalid survey input.'}); return; }
   const { userId, consent, wordBubbles, wordBody, temporality, relations, painDescription } = req.body;
 
   // validate user input
@@ -189,46 +219,63 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
     return res.status(400).json({ message: msg });
   }
 
-  // try to compute a coordinate from the user input
   let coordinate: Coordinate | undefined;
+  let text: string | undefined;
   try {
     coordinate = await computeCoordinate(wordBubbles, wordBody, temporality, relations, painDescription);
   }
   catch (error) {
-    logger.error({ err: error }, `Error during computeCoordinate() for userId=\"${userId}\"`, `req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: "Failed to compute coordinate from survey.", error: new Error("Error during coordiante computation.") });
+    logger.apierror('Survey processing failed.');  // todo: should these really use apierror if they don't fail due to API reasons?
+    res.status(500).json({ message: "Failed to compute coordinate from survey." });
+    return;
   }
-
-  // try to generate text from the user input
-  let text: string | undefined;
   try {
-    text = generateText(painDescription);
+    const messageResponse = await fetch(`${PAIN_MESSAGE_URL}/survey`, {
+      method: "POST",
+      signal: AbortSignal.timeout(15000),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        wordBubbles,
+        wordBody,
+        temporality,
+        relations,
+        painDescription,
+      }),
+    });
+
+    if (!messageResponse.ok) {
+      throw new Error(`pain-message returned ${messageResponse.status}`);
+    }
+
+    const message = await messageResponse.json() as { paragraph?: unknown };
+    if (typeof message.paragraph !== "string" || !message.paragraph.trim()) {
+      throw new Error("pain-message returned an invalid response");
+    }
+
+    text = message.paragraph;
   }
   catch (error) {
-    logger.error({ err: error }, `Error during generateText() for userId=${userId}`, `req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: "Failed to generate text from survey.", error: new Error("Error during text generation") });
+    logger.apierror('Survey processing failed.');  // todo: should these really use apierror if they don't fail due to API reasons?
+    res.status(500).json({ message: "Failed to generate text from survey." });
+    return;
   }
-
   if (coordinate && text) {
     try {
       // only store resulting coordinate if the user gave consent
-      if (consent) {
+      if (consent === true) {
         if (!await storeUserCoordinate(userId, coordinate)) {
           logger.error(`Failed to store user coordinate for userId=${userId}.`);
         }
       }
     }
     catch (error) {
-      apierror(ApiConfig.SURVEY, userId, error);
+      logger.apierror('Survey storage failed.');
     }
-    // we still send 200 so the user can receive their coordiante & text
     return res.status(200).json({ lat: coordinate.lat, lng: coordinate.lng, text });
   }
   else {
-    const errMsg = `Either no coordinate or text was computed! coordinate=${coordinate}, text="${text}"`;
-    logger.apierror(`Failed to either compute a coordinate or text for userId=\"${userId}\"!
-      coordinate=${coordinate}, text="${text}", req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: errMsg, error: new Error("Invalid coordinate or text computation!")});
+    logger.apierror('Survey result unavailable.');
+    return res.status(500).json({ message: 'Failed to complete survey.' });
   }
 });
 
@@ -240,95 +287,54 @@ app.post(ApiConfig.SURVEY, async (req, res) => {
 app.post(ApiConfig.METRICS_TOGGLE, async (req, res) => {
   apiinfo("POST", ApiConfig.METRICS_TOGGLE);
   const { userId, kind, element, enabled } = req.body;
-
-  // validate user input
-  if (!validateUserId(userId)) {
-    const msg = `Received invalid userId=\"${userId}\"!`;
-    logger.apierror(`For ${ApiConfig.METRICS_TOGGLE}: ${msg}`);
-    return res.status(400).json({ message: msg });
+  // Old clients must not persist answer identity or arbitrary text through the legacy route.
+  let safeElement: string | undefined;
+  if (kind === 'layer' && LAYERS.includes(element)) safeElement = element;
+  if (kind === 'category' && typeof element === 'string') {
+    if (/^[A-Z]{3}:/.test(element)) safeElement = element.slice(0, 3);
+    if (element.startsWith('emotion-filter:') && EMOTIONS.includes(element.slice(15))) safeElement = element;
+    if (['festival:visit', 'festival:workshop'].includes(element)) safeElement = element;
   }
-  const valRes = validateToggleMetric(kind, element, enabled);
-  if (!valRes.isValid) {
-    const msg = `Received invalid toggle metric input!`;
-    logger.apierror(`For ${ApiConfig.METRICS_TOGGLE}: ${msg} Reason = ${valRes.info}`);
-    return res.status(400).json({ message: msg });
+  if (!validUserId(userId) || typeof enabled !== 'boolean' || !safeElement ||
+      Object.keys(req.body).some(k => !['userId', 'kind', 'element', 'enabled'].includes(k))) {
+    res.status(400).json({ message: 'Invalid legacy metric.' }); return;
   }
 
   try {
-    if (await storeToggleMetric(userId, kind, element, enabled)) {
-      return res.status(200).send();
-    }
-    else {
-      logger.apierror(`Failed to store step metric. req.body = ${JSON.stringify(req.body)}`);
-      return res.status(500).json({ message: "Failed to store toggle metric.", error: new Error("Unknown Error")});
-    }
+    if (!await storeToggleMetric(userId, kind, safeElement, enabled)) throw new Error('Metric was not stored');
+    res.status(200).send();
   }
   catch (error) {
-    apierror(ApiConfig.METRICS_TOGGLE, userId, error, `req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: "Failed to store toggle metric.", error: new Error("Error for toggle metric") });
+    logger.apierror('Legacy metric storage failed.');
+    res.status(500).json({ message: 'Failed to store metric.' });
   }
 });
 
-app.post(ApiConfig.METRICS_STEP, async (req, res) => {
-  apiinfo("POST", ApiConfig.METRICS_STEP);
-  const { userId, step } = req.body;
-
-  // validate user input
-  if (!validateUserId(userId)) {
-    const msg = `Received invalid userId=\"${userId}\"!`;
-    logger.apierror(`For ${ApiConfig.METRICS_STEP}: ${msg}`);
-    return res.status(400).json({ message: msg });
-  }
-  const valRes = validateStepMetric(step);
-  if (!valRes.isValid) {
-    const msg = `Received invalid step metric input!`;
-    logger.apierror(`For ${ApiConfig.METRICS_STEP}: ${msg} Reason = ${valRes.info}`);
-    return res.status(400).json({ message: msg });
-  }
-
-  try {
-    if (await storeStepMetric(userId, step)) {
-      return res.status(200).send();
-    }
-    else {
-      logger.apierror(`Failed to store step metric. req.body = ${JSON.stringify(req.body)}`);
-      return res.status(500).json({ message: "Failed to store step metric.", error: new Error("Unknown Error")});
-    }
-  }
-  catch (error) {
-    apierror(ApiConfig.METRICS_STEP, userId, error, `req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: "Failed to store step metric.", error: new Error("Error for step metric") });
-  }
+// Old survey-step requests lack consent. New clients use validated consent-bearing batches.
+app.post(ApiConfig.METRICS_STEP, (_req, res) => {
+  res.status(400).json({ message: 'Use consent-bearing interaction batches.' });
 });
 
 app.post(ApiConfig.METRICS_VIZMODE, async (req, res) => {
-  apiinfo("POST", ApiConfig.METRICS_VIZMODE);
   const { userId, mode } = req.body;
-
-  // validate user input
-  if (!validateUserId(userId)) {
-    const msg = `Received invalid userId=\"${userId}\"!`;
-    logger.apierror(`For ${ApiConfig.METRICS_VIZMODE}: ${msg}`);
-    return res.status(400).json({ message: msg });
+  if (!validUserId(userId) || !['points', 'scars', 'multiplex-v0'].includes(mode) ||
+      Object.keys(req.body).some(k => !['userId', 'mode'].includes(k))) {
+    res.status(400).json({ message: 'Invalid visualization metric.' }); return;
   }
-  const valRes = validateVisMetric(mode);
-  if (!valRes.isValid) {
-    const msg = `Received invalid vis metric input!`;
-    logger.apierror(`For ${ApiConfig.METRICS_VIZMODE}: ${msg} Reason = ${valRes.info}`);
-    return res.status(400).json({ message: msg });
-  }
-
   try {
-    if (!await storeVisModeMetric(userId, mode)) {
-      return res.status(200).send();
-    }
-    else {
-      logger.apierror(`Failed to store vis mode metric. req.body = ${JSON.stringify(req.body)}`);
-      return res.status(500).json({ message: "Failed to store vis mode metric.", error: new Error("Unknown Error")});
-    }
+    if (!await storeVisModeMetric(userId, mode)) throw new Error('Metric was not stored');
+    res.sendStatus(200);
   }
-  catch (error) {
-    apierror(ApiConfig.METRICS_VIZMODE, userId, error, `req.body = ${JSON.stringify(req.body)}`);
-    return res.status(500).json({ message: "Failed to store viz mode metric.", error: new Error("Error for viz mode metric") });
-  }
+  catch { res.status(503).json({ message: 'Metric storage unavailable.' }); }
 });
+
+// Express parser errors can retain the submitted body. Return only a fixed status message.
+app.use((error: { status?: number }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  res.status(error.status === 413 ? 413 : 400).json({ message: 'Invalid request body.' });
+});
+
+// SPA fallback: serve index.html for non-API routes
+//app.use((req, res, next) => {
+//  if (req.path.startsWith('/api')) return next();
+//  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+//});

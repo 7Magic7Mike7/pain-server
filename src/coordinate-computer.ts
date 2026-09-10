@@ -1,10 +1,12 @@
+/*
+ * File attribution
+ * edited by Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach
+ */
 // Copyright © 2026 Michael Artner
 import { countryToCoordinate } from "./config/country-coordinate-config";
 import { PAIN_ORIGINS, PainDbConfig, PainOrigin } from "./config/db-config";
-import { LOGGER } from "./config/log-config";
 import { getClosestDataPoint, PainData } from "./loader/db-loader";
 
-const logger = LOGGER.child({ service: "CoordinateComputer" });
 
 const DECIMALS = 5;
 
@@ -126,7 +128,6 @@ function computePainValue(origin: string, wordBubbles: string[], wordBody: WordB
     const maxPain = Math.max(...temporality.map((tempo) => SURVEY_TEMPORALITY_TO_MAX_VALUE[tempo]), 
                     SURVEY_TEMPORALITY_DEFAULT_MAX_VALUE);
     const pain = selectedOriginWords.length / originWords.length;
-    logger.debug(`computed a pain = ${pain} out of ${maxPain} for ${origin}`);
     return {
       value: Math.round(pain * maxPain * Math.pow(10, DECIMALS)) / Math.pow(10, DECIMALS),  // cut off everything after DECIMALS
       words: selectedOriginWords,
@@ -134,7 +135,6 @@ function computePainValue(origin: string, wordBubbles: string[], wordBody: WordB
     }
   }
   catch(error) {
-    logger.error({ err: error }, `Error while computing pain value for ${origin}.`);
     return {
       value: 0,
       words: selectedOriginWords,
@@ -155,14 +155,11 @@ function extractWordBodyCoordinates(selectedOriginWords: string[], wordBody: Wor
     for (const wb of wordBody) {
       if (selectedOriginWords.includes(wb.word)) {
         coordinates.push({ lat: wb.lat, lng: wb.lng });
-        logger.debug(`pushing (${wb.lat} | ${wb.lng})`);
       }
     }
-    logger.debug(`Extracted word body coordinates = ${JSON.stringify(coordinates)}`);
     return coordinates;
   }
   catch (error) {
-    logger.error({ err: error }, `Error on extracting word body coordinates.`);
     return [];
   }
 }
@@ -174,14 +171,12 @@ function extractWordBodyCoordinates(selectedOriginWords: string[], wordBody: Wor
  * @throws Error if dataPoint has neither a country nor a lat-lng pair, making coordinate extraction impossible
  */
 function extractCoordinate(dataPoint: PainData): Coordinate {
-  logger.debug(`Extracting coordinate from datapoint = ${JSON.stringify(dataPoint)}`);
   if (dataPoint.country) {
     const countryCoordiante = countryToCoordinate(dataPoint.country);
     if (countryCoordiante) {
       return countryCoordiante;
     }
     else {
-      logger.error(`Failed to get coordinate for country=\"${dataPoint.country}\". Sending (0|0) instead.`);
       return { lat: 0, lng: 0};
     }
   }
@@ -216,17 +211,14 @@ export async function computeCoordinate(wordBubbles: string[], wordBody: WordBod
         const dataPoint = await getClosestDataPoint(origin, value);
         try {
           const coor = extractCoordinate(dataPoint);
-          logger.debug(`Found closest datapoint for ${origin} at ${JSON.stringify(coor)} with weight=${value}.`);
           painValues.push({ coordinate: coor, weight: value });
         }
         catch (error) {
           // don't log as error since nothing breaks if this happens, the coordinate computation is just more inaccurate
-          logger.info({ err: error }, `Error extracting the coordinate of a datapoint from ${origin} with id=${dataPoint.id}.`);
         }
       }
       catch (error) {
         // don't log as error since nothing breaks if this happens, the coordinate computation is just more inaccurate
-        logger.info({ err: error }, `Error getting the datapoint closest to value=${value} for ${origin}.`);
       }
     }
   }
@@ -237,13 +229,10 @@ export async function computeCoordinate(wordBubbles: string[], wordBody: WordBod
     intermediateCoordinate.lat += weight * coordinate.lat;
     intermediateCoordinate.lng += weight * coordinate.lng;
     weightSum += weight;
-    logger.debug(`current intermediate coordinate = ${JSON.stringify(intermediateCoordinate)} with weight = ${weightSum}`);
   }
   if (weightSum == 0) {
     weightSum = 1.0;
-    logger.warn(`Entered case with a weightSum=0! painValues = ${JSON.stringify(painValues)}`);
   }
   const userCoordinate = { lat: intermediateCoordinate.lat / weightSum, lng: intermediateCoordinate.lng / weightSum };
-  logger.debug(`Computed userCoordinate = ${JSON.stringify(userCoordinate)}`);
   return userCoordinate;
 }
