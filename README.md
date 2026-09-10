@@ -1,3 +1,9 @@
+<!--
+File attribution
+edited by Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach
+changes: +53 / -0 lines (excluding attribution)
+baseline: 686059eea3cb (security before PR #12)
+-->
 The PPP Map's backend server including the frontend that will be served to users.
 
 # Backend

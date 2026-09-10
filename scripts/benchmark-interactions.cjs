@@ -1,3 +1,7 @@
+/*
+ * File attribution
+ * created by Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach
+ */
 // Writes only to an explicitly designated, empty disposable database on loopback.
 // Run after npm run build. Pass the additive setup migration as the sole argument.
 const assert = require('node:assert/strict');

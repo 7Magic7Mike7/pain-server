@@ -1,4 +1,7 @@
-/** created by: Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach */
+/*
+ * File attribution
+ * created by Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach
+ */
 import { expect, it } from 'vitest';
 import { EventEmitter } from 'node:events';
 import { requestLimits } from '../src/request-limits';

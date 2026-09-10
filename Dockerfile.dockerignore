@@ -1,4 +1,5 @@
-# created by: Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach
+# File attribution
+# created by Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach
 # Compose builds from the workspace root, so the server's ordinary .dockerignore is not read.
 *
 !pain-frontend/

@@ -1,3 +1,7 @@
+/*
+ * File attribution
+ * created by Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach
+ */
 import { getPainLayer } from './db-loader';
 import { gzip } from 'node:zlib';
 import { promisify } from 'node:util';

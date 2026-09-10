@@ -1,3 +1,7 @@
+/*
+ * File attribution
+ * created by Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach
+ */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import { once } from 'node:events';

@@ -1,3 +1,7 @@
+/*
+ * File attribution
+ * created by Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach
+ */
 // Read-only HTTP benchmark. Run after build, with the normal database/table environment.
 // A separate worker keeps server memory and SQL counts distinct from the 50 clients.
 const { fork } = require('node:child_process');

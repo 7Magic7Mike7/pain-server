@@ -1,3 +1,7 @@
+/*
+ * File attribution
+ * created by Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach
+ */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { gunzipSync } from 'node:zlib';
