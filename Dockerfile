@@ -1,7 +1,5 @@
 # File attribution
 # edited by Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach
-# changes: +5 / -12 lines (excluding attribution)
-# baseline: 686059eea3cb (security before PR #12)
 # Multi-stage Dockerfile for the pain-server service
 # Builds the TypeScript app. The separate message service owns the Python runtime.
 

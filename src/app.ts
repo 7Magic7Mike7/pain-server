@@ -1,8 +1,6 @@
 /*
  * File attribution
  * edited by Christian Stelmach (chrisp.stel@gmail.com), GitHub: @cstelmach
- * changes: +108 / -106 lines (excluding attribution)
- * baseline: 686059eea3cb (security before PR #12)
  */
 // Copyright © 2026 Michael Artner
 import express from 'express';
